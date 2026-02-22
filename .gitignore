@@ -15,3 +15,7 @@ data/
 # Machine-specific
 .mcp.json
 .claude/
+
+# AWS CLI installer (downloaded locally, not part of project)
+aws/
+awscliv2.zip
