@@ -12,7 +12,7 @@ This roadmap delivers a data sharing platform in six phases: secure AWS access f
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: AWS Infrastructure** - Read-only IAM policy and credential configuration for analysts
+- [x] **Phase 1: AWS Infrastructure** - Read-only IAM policy and credential configuration for analysts
 - [ ] **Phase 2: Table Export via Pins** - Export non-spatial tables to S3 with metadata, accessible from R and Python
 - [ ] **Phase 3: DuckLake Catalogue** - Register all tables in a DuckLake catalogue with comments, time travel, and views
 - [ ] **Phase 4: Spatial Data Handling** - Convert WKB_BLOB geometry columns for both pins and DuckLake consumers
@@ -32,8 +32,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- IAM policy, group, user, and DuckDB credential_chain verification
-- [ ] 01-02-PLAN.md -- Analyst credential configuration documentation
+- [x] 01-01-PLAN.md -- IAM policy, group, user, and DuckDB credential_chain verification
+- [x] 01-02-PLAN.md -- Analyst credential configuration documentation
 
 ### Phase 2: Table Export via Pins
 **Goal**: Analysts can discover, read, and understand non-spatial datasets from both R and Python using pins
@@ -120,7 +120,7 @@ Note: Phases 3 and 4 could potentially execute in parallel after Phase 2.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. AWS Infrastructure | 0/2 | Planned | - |
+| 1. AWS Infrastructure | 2/2 | Complete | 2026-02-22 |
 | 2. Table Export via Pins | 0/3 | Not started | - |
 | 3. DuckLake Catalogue | 0/3 | Not started | - |
 | 4. Spatial Data Handling | 0/1 | Not started | - |
