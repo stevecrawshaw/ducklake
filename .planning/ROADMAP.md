@@ -50,7 +50,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md -- Metadata extraction, spatial table identification, and cross-language interop validation
-- [ ] 02-02-PLAN.md -- Bulk export of all non-spatial tables as pins to S3 with metadata
+- [x] 02-02-PLAN.md -- Bulk export of all non-spatial tables as pins to S3 with metadata
 - [ ] 02-03-PLAN.md -- Cross-language validation (R and Python read all pins)
 
 ### Phase 3: DuckLake Catalogue
@@ -123,7 +123,7 @@ Note: Phases 3 and 4 could potentially execute in parallel after Phase 2.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. AWS Infrastructure | 2/2 | Complete | 2026-02-22 |
-| 2. Table Export via Pins | 1/3 | In progress | - |
+| 2. Table Export via Pins | 2/3 | In progress | - |
 | 3. DuckLake Catalogue | 0/3 | Not started | - |
 | 4. Spatial Data Handling | 0/1 | Not started | - |
 | 5. Refresh Pipeline and Data Catalogue | 0/2 | Not started | - |
