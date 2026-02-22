@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 ## Current Position
 
 Phase: 1 of 6 (AWS Infrastructure)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-02-22 -- Completed 01-02-PLAN.md
+Plan: 1 of 2 in current phase (01-01 paused at checkpoint, 01-02 complete)
+Status: In progress — 01-01 blocked on human action
+Last activity: 2026-02-22 -- 01-01 Task 1 committed (ae7ca87), checkpoint reached at Task 2
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [█░░░░░░░░░] 8%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-22T13:10Z
-Stopped at: Completed 01-02-PLAN.md (Phase 1 complete)
+Last session: 2026-02-22
+Stopped at: 01-01 checkpoint — user must run `bash scripts/setup_iam.sh` with admin AWS creds
+Resume action: Run setup script, then `/gsd:execute-phase 1` to continue
 Resume file: None
