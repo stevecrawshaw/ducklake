@@ -74,39 +74,39 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| EXPORT-01 | — | Pending |
-| EXPORT-02 | — | Pending |
-| EXPORT-03 | — | Pending |
-| EXPORT-04 | — | Pending |
-| EXPORT-05 | — | Pending |
-| PINS-01 | — | Pending |
-| PINS-02 | — | Pending |
-| PINS-03 | — | Pending |
-| PINS-04 | — | Pending |
-| PINS-05 | — | Pending |
-| LAKE-01 | — | Pending |
-| LAKE-02 | — | Pending |
-| LAKE-03 | — | Pending |
-| LAKE-04 | — | Pending |
-| LAKE-05 | — | Pending |
-| LAKE-06 | — | Pending |
-| LAKE-07 | — | Pending |
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| INFRA-03 | — | Pending |
-| INFRA-04 | — | Pending |
-| CAT-01 | — | Pending |
-| CAT-02 | — | Pending |
-| CAT-03 | — | Pending |
-| REFRESH-01 | — | Pending |
-| REFRESH-02 | — | Pending |
-| REFRESH-03 | — | Pending |
+| EXPORT-01 | Phase 2 | Pending |
+| EXPORT-02 | Phase 2 | Pending |
+| EXPORT-03 | Phase 2 | Pending |
+| EXPORT-04 | Phase 4 | Pending |
+| EXPORT-05 | Phase 2 | Pending |
+| PINS-01 | Phase 2 | Pending |
+| PINS-02 | Phase 2 | Pending |
+| PINS-03 | Phase 2 | Pending |
+| PINS-04 | Phase 2 | Pending |
+| PINS-05 | Phase 2 | Pending |
+| LAKE-01 | Phase 3 | Pending |
+| LAKE-02 | Phase 3 | Pending |
+| LAKE-03 | Phase 3 | Pending |
+| LAKE-04 | Phase 3 | Pending |
+| LAKE-05 | Phase 3 | Pending |
+| LAKE-06 | Phase 3 | Pending |
+| LAKE-07 | Phase 3 | Pending |
+| INFRA-01 | Phase 1 | Pending |
+| INFRA-02 | Phase 1 | Pending |
+| INFRA-03 | Phase 6 | Pending |
+| INFRA-04 | Phase 6 | Pending |
+| CAT-01 | Phase 5 | Pending |
+| CAT-02 | Phase 5 | Pending |
+| CAT-03 | Phase 5 | Pending |
+| REFRESH-01 | Phase 5 | Pending |
+| REFRESH-02 | Phase 5 | Pending |
+| REFRESH-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 27 total
-- Mapped to phases: 0
-- Unmapped: 27 ⚠️
+- Mapped to phases: 27
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-22*
-*Last updated: 2026-02-22 after initial definition*
+*Last updated: 2026-02-22 after roadmap creation*
