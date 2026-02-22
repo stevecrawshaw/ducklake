@@ -29,11 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. A read-only IAM policy exists that restricts analyst AWS users to S3 read operations on the target bucket
   2. The data owner can connect DuckDB to S3 using `credential_chain` (no hardcoded keys)
   3. An analyst following the credential documentation can configure their `.aws` config and verify access
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: IAM policy and credential chain setup
-- [ ] 01-02: Analyst credential configuration documentation
+- [ ] 01-01-PLAN.md -- IAM policy, group, user, and DuckDB credential_chain verification
+- [ ] 01-02-PLAN.md -- Analyst credential configuration documentation
 
 ### Phase 2: Table Export via Pins
 **Goal**: Analysts can discover, read, and understand non-spatial datasets from both R and Python using pins
@@ -120,7 +120,7 @@ Note: Phases 3 and 4 could potentially execute in parallel after Phase 2.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. AWS Infrastructure | 0/2 | Not started | - |
+| 1. AWS Infrastructure | 0/2 | Planned | - |
 | 2. Table Export via Pins | 0/3 | Not started | - |
 | 3. DuckLake Catalogue | 0/3 | Not started | - |
 | 4. Spatial Data Handling | 0/1 | Not started | - |
