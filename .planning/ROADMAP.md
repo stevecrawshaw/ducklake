@@ -46,12 +46,12 @@ Plans:
   4. An analyst in Python can list and read the same datasets using pins
   5. Pin metadata for each table includes the table description and column descriptions from the source DuckDB
   6. The 19M-row EPC table exports successfully without OOM or timeout
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Source reading and metadata extraction
-- [ ] 02-02: Pins export pipeline (non-spatial tables)
-- [ ] 02-03: Cross-language pins validation (R and Python)
+- [ ] 02-01-PLAN.md -- Metadata extraction, spatial table identification, and cross-language interop validation
+- [ ] 02-02-PLAN.md -- Bulk export of all non-spatial tables as pins to S3 with metadata
+- [ ] 02-03-PLAN.md -- Cross-language validation (R and Python read all pins)
 
 ### Phase 3: DuckLake Catalogue
 **Goal**: Analysts can attach a shared DuckLake catalogue and query any table with SQL, including time travel and pre-built views
