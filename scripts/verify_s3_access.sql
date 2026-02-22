@@ -31,4 +31,4 @@ SELECT * FROM glob('s3://stevecrawshaw-bucket/*');
 -- Step 4: List objects under the pins/ prefix.
 -- This will return zero rows until Phase 2 exports data, which is expected.
 -- Success means the prefix path is reachable (no 403 / permission error).
-SELECT file_name FROM glob('s3://stevecrawshaw-bucket/pins/*') LIMIT 5;
+SELECT file FROM glob('s3://stevecrawshaw-bucket/pins/*') LIMIT 5;
