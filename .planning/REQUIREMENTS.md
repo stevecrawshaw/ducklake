@@ -74,16 +74,16 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| EXPORT-01 | Phase 2 | Pending |
-| EXPORT-02 | Phase 2 | Pending |
-| EXPORT-03 | Phase 2 | Pending |
+| EXPORT-01 | Phase 2 | Complete |
+| EXPORT-02 | Phase 2 | Complete |
+| EXPORT-03 | Phase 2 | Complete |
 | EXPORT-04 | Phase 4 | Pending |
-| EXPORT-05 | Phase 2 | Pending |
-| PINS-01 | Phase 2 | Pending |
-| PINS-02 | Phase 2 | Pending |
-| PINS-03 | Phase 2 | Pending |
-| PINS-04 | Phase 2 | Pending |
-| PINS-05 | Phase 2 | Pending |
+| EXPORT-05 | Phase 2 | Complete |
+| PINS-01 | Phase 2 | Complete |
+| PINS-02 | Phase 2 | Complete |
+| PINS-03 | Phase 2 | Complete |
+| PINS-04 | Phase 2 | Complete |
+| PINS-05 | Phase 2 | Complete |
 | LAKE-01 | Phase 3 | Pending |
 | LAKE-02 | Phase 3 | Pending |
 | LAKE-03 | Phase 3 | Pending |
@@ -91,8 +91,8 @@
 | LAKE-05 | Phase 3 | Pending |
 | LAKE-06 | Phase 3 | Pending |
 | LAKE-07 | Phase 3 | Pending |
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Complete |
+| INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 6 | Pending |
 | INFRA-04 | Phase 6 | Pending |
 | CAT-01 | Phase 5 | Pending |
