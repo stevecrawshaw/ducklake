@@ -49,7 +49,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- Metadata extraction, spatial table identification, and cross-language interop validation
+- [x] 02-01-PLAN.md -- Metadata extraction, spatial table identification, and cross-language interop validation
 - [ ] 02-02-PLAN.md -- Bulk export of all non-spatial tables as pins to S3 with metadata
 - [ ] 02-03-PLAN.md -- Cross-language validation (R and Python read all pins)
 
@@ -74,14 +74,16 @@ Plans:
 **Goal**: Spatial tables with WKB_BLOB geometry columns are correctly converted and accessible through both pins and DuckLake
 **Depends on**: Phase 2 (pins infrastructure), Phase 3 (DuckLake catalogue)
 **Requirements**: EXPORT-04
+**Research scope**: Investigate GeoParquet as a potential unified format for spatial data — could replace the separate WKT (pins) and native GEOMETRY (DuckLake) paths if pins compatibility and analyst tooling (sf, geopandas) support it via `pin_upload`/`pin_download`.
 **Success Criteria** (what must be TRUE):
   1. Geometry columns are stored as native GEOMETRY type in DuckLake (not raw BLOB)
-  2. Geometry columns are stored as WKT text in pins exports (readable by R `sf` and Python `shapely`)
+  2. Geometry columns are accessible in pins exports and readable by R `sf` and Python `geopandas` (format TBD pending GeoParquet research — could be WKT text or GeoParquet)
   3. An analyst can roundtrip a geometry column: read from pins/DuckLake, convert to spatial object, and plot it
 **Plans**: TBD
 
 Plans:
-- [ ] 04-01: WKB_BLOB conversion utilities and spatial table export
+- [ ] 04-01: GeoParquet feasibility spike and spatial format decision
+- [ ] 04-02: Spatial table export (format per 04-01 findings)
 
 ### Phase 5: Refresh Pipeline and Data Catalogue
 **Goal**: The data owner can re-export updated data with a single command, and analysts can discover what datasets exist without asking
@@ -121,7 +123,7 @@ Note: Phases 3 and 4 could potentially execute in parallel after Phase 2.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. AWS Infrastructure | 2/2 | Complete | 2026-02-22 |
-| 2. Table Export via Pins | 0/3 | Not started | - |
+| 2. Table Export via Pins | 1/3 | In progress | - |
 | 3. DuckLake Catalogue | 0/3 | Not started | - |
 | 4. Spatial Data Handling | 0/1 | Not started | - |
 | 5. Refresh Pipeline and Data Catalogue | 0/2 | Not started | - |
