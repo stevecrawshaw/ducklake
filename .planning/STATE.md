@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Analysts can discover and access curated, well-documented datasets from a shared catalogue without needing to know where or how the data is stored.
-**Current focus:** Phase 3 in progress -- DuckLake Catalogue
+**Current focus:** Phase 4 in progress -- Spatial Data Handling
 
 ## Current Position
 
-Phase: 3 of 6 (DuckLake Catalogue) -- Complete
-Plan: 3 of 3 complete (03-03 complete)
-Status: Phase complete
-Last activity: 2026-02-23 -- Completed 03-03-PLAN.md (time travel and validation)
+Phase: 4 of 6 (Spatial Data Handling)
+Plan: 1 of 2 complete (04-01 complete)
+Status: In progress
+Last activity: 2026-02-23 -- Completed 04-01-PLAN.md (spatial pipeline spike)
 
-Progress: [█████████░░░░░] 60%
+Progress: [██████████░░░░] 67%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: ~10 minutes
-- Total execution time: ~73 minutes
+- Total execution time: ~80 minutes
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [█████████░░░░░] 60%
 | 01-aws-infrastructure | 2 | ~2 min | ~1 min |
 | 02-table-export-via-pins | 3 | ~32 min | ~11 min |
 | 03-ducklake-catalogue | 3 | ~43 min | ~14 min |
+| 04-spatial-data-handling | 1 | ~7 min | ~7 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (~21 min), 02-03 (~5 min), 03-01 (~31 min), 03-02 (~7 min), 03-03 (~5 min)
-- Trend: Metadata-only plans (comments, views, validation) much faster than data upload plans
+- Last 5 plans: 02-03 (~5 min), 03-01 (~31 min), 03-02 (~7 min), 03-03 (~5 min), 04-01 (~7 min)
+- Trend: Spike plan fast due to single small table (1 row)
 
 *Updated after each plan completion*
 
@@ -61,6 +62,10 @@ Recent decisions affecting current work:
 - [03-02]: weca_lep_la_vw returns 4 rows (North Somerset is 4th WECA LEP LA, not additional)
 - [03-02]: 3 spatial-dependent views deferred to Phase 4
 - [03-03]: Time-based retention (90 days) chosen over version-count -- DuckLake snapshots are database-wide, not per-table
+- [04-01]: sfarrow fails on GeoParquet from DuckDB (missing CRS in metadata) -- use arrow::read_parquet + sf::st_as_sf instead
+- [04-01]: Python pins board_s3 uses "bucket/prefix" path format, not separate prefix parameter
+- [04-01]: CRS not embedded in GeoParquet by DuckDB -- track in pin metadata, analysts set explicitly
+- [04-01]: geopandas added as Python dependency for spatial pin consumption
 
 ### Pending Todos
 
@@ -68,20 +73,19 @@ None.
 
 ### Blockers/Concerns
 
-- [Research]: WKB_BLOB to DuckLake native geometry conversion path is LOW confidence -- needs validation spike in Phase 4
-- [Phase 4]: GeoParquet added to research scope -- could unify spatial format for both pins and DuckLake instead of separate WKT/GEOMETRY paths
+- [RESOLVED]: WKB_BLOB to DuckLake native geometry conversion validated in 04-01 spike -- ST_GeomFromWKB works, GEOMETRY type confirmed
+- [RESOLVED]: GeoParquet pipeline validated -- DuckDB COPY TO produces GeoParquet 1.0.0, R and Python can read
 - [03-01]: DuckLake catalogue file is local (data/mca_env.ducklake) -- analysts need this file to attach; sharing mechanism TBD
 - [03-01]: Orphaned parquet files on S3 from failed COPY FROM DATABASE attempt; cosmetic, does not affect functionality
 - [03-01]: R duckdb package (v1.4.4) and DuckDB CLI (v1.4.1) version mismatch; scripts use CLI
-- [RESOLVED]: pins R/Python cross-language interoperability validated in 02-01 -- custom metadata round-trips correctly
-- [RESOLVED]: raw_domestic_epc_certificates_tbl (19.3M rows) exported successfully via chunked pin_upload (7 x 3M-row parquet shards)
-- [RESOLVED]: All 10 non-spatial pins validated readable from both R and Python with correct metadata (02-03)
+- [04-01]: sfarrow incompatible with DuckDB GeoParquet (no CRS in geo metadata) -- use arrow + sf instead
+- [04-01]: Python geopandas reports CRS as OGC:CRS84 when GeoParquet has no CRS metadata -- analysts must set CRS explicitly
 - [02-01]: s3fs version warning (cosmetic) -- may want to pin s3fs version in future
 - [02-03]: Python pins library cannot pin_read multi-file pins -- analysts should use arrow/duckdb for EPC table
 
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 03-03-PLAN.md (time travel and validation) -- Phase 3 complete
-Resume action: Begin Phase 4 (Spatial Data Handling) or Phase 5 (Refresh Pipeline)
+Stopped at: Completed 04-01-PLAN.md (spatial pipeline spike)
+Resume action: Execute 04-02-PLAN.md (batch spatial conversion of all 8 tables)
 Resume file: None
