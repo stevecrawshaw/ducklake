@@ -79,11 +79,11 @@ Plans:
   1. Geometry columns are stored as native GEOMETRY type in DuckLake (not raw BLOB)
   2. Geometry columns are accessible in pins exports and readable by R `sf` and Python `geopandas` (format TBD pending GeoParquet research — could be WKT text or GeoParquet)
   3. An analyst can roundtrip a geometry column: read from pins/DuckLake, convert to spatial object, and plot it
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: GeoParquet feasibility spike and spatial format decision
-- [ ] 04-02: Spatial table export (format per 04-01 findings)
+- [ ] 04-01-PLAN.md -- Spike: DuckLake GEOMETRY recreation, GeoParquet pin export, R/Python roundtrip validation (1 table)
+- [ ] 04-02-PLAN.md -- Batch: Recreate all 8 spatial DuckLake tables with GEOMETRY, export all as GeoParquet pins
 
 ### Phase 5: Refresh Pipeline and Data Catalogue
 **Goal**: The data owner can re-export updated data with a single command, and analysts can discover what datasets exist without asking
@@ -125,7 +125,7 @@ Note: Phases 3 and 4 could potentially execute in parallel after Phase 2.
 | 1. AWS Infrastructure | 2/2 | Complete | 2026-02-22 |
 | 2. Table Export via Pins | 3/3 | Complete | 2026-02-22 |
 | 3. DuckLake Catalogue | 3/3 | Complete | 2026-02-23 |
-| 4. Spatial Data Handling | 0/1 | Not started | - |
+| 4. Spatial Data Handling | 0/2 | Not started | - |
 | 5. Refresh Pipeline and Data Catalogue | 0/2 | Not started | - |
 | 6. Analyst Documentation | 0/2 | Not started | - |
 
