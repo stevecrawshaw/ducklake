@@ -41,6 +41,7 @@
 | `uv` | Python package manager | Already configured. Use `uv add` for dependencies, `uv run` for execution. |
 | DuckDB CLI | Interactive SQL for DuckLake management | `INSTALL ducklake; ATTACH 'ducklake:...'` for testing. Essential for debugging. |
 | AWS CLI | S3 bucket management, IAM policies | Required for initial bucket setup, CORS, policies. |
+| MotherDuck MCP Server | Read-only SQL access to local DuckDB from Claude Code | Configured in `.mcp.json`. Connects to `data/mca_env_base.duckdb`. Provides `execute_query`, `list_tables`, `list_columns` tools for exploring schema and querying data without leaving the conversation. Useful for verifying table structure, checking metadata, and validating data during development. |
 
 ## DuckLake Summary (from docs/ducklake-docs.md)
 
