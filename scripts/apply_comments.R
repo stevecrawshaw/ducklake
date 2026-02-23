@@ -142,3 +142,75 @@ if (!is.null(exit_code) && exit_code != 0) {
 file.remove(tmp_sql)
 
 cat("=== Comments application complete ===\n\n")
+
+# ============================================================
+# Step 4: Create views from scripts/create_views.sql
+# ============================================================
+cat("=== Creating Views ===\n\n")
+
+if (!file.exists(VIEWS_SQL_FILE)) {
+  cat(sprintf("ERROR: Views SQL file not found: %s\n", VIEWS_SQL_FILE))
+  quit(status = 1)
+}
+
+# Read the views SQL file
+views_sql <- readLines(VIEWS_SQL_FILE, warn = FALSE) |> paste(collapse = "\n")
+
+# Build the full SQL: preamble + drop existing views (idempotent) + create views + verify
+# First, extract view names from the SQL to generate DROP IF EXISTS statements
+view_names <- regmatches(
+  views_sql,
+  gregexpr("CREATE VIEW lake\\.(\\w+)", views_sql)
+)[[1]]
+view_names <- sub("CREATE VIEW lake\\.", "", view_names)
+
+cat(sprintf("Found %d view definitions in %s\n", length(view_names), VIEWS_SQL_FILE))
+cat("Views:", paste(view_names, collapse = ", "), "\n\n")
+
+# Build combined SQL with preamble, drops, creates, and verification
+drop_stmts <- paste0("DROP VIEW IF EXISTS lake.", view_names, ";")
+
+views_full_sql <- paste(
+  c(
+    preamble,
+    "",
+    "-- Drop existing views (idempotent re-run)",
+    drop_stmts,
+    "",
+    "-- Create views from create_views.sql",
+    views_sql,
+    "",
+    "-- Verification",
+    "SELECT view_name FROM duckdb_views() WHERE database_name = 'lake' ORDER BY view_name;",
+    "SELECT COUNT(*) AS weca_lep_la_rows FROM lake.weca_lep_la_vw;",
+    "SELECT COUNT(*) AS ghg_weca_rows FROM lake.la_ghg_emissions_weca_vw;"
+  ),
+  collapse = "\n"
+)
+
+tmp_views_sql <- "scripts/.tmp_create_views.sql"
+writeLines(views_full_sql, tmp_views_sql, useBytes = TRUE)
+
+cat("--- Executing CREATE VIEW statements via DuckDB CLI ---\n\n")
+
+views_cmd <- sprintf('duckdb -init "%s" -c "SELECT 1;" -no-stdin', tmp_views_sql)
+views_result <- system(views_cmd, intern = TRUE, timeout = 120)
+
+if (length(views_result) > 0) {
+  cat("DuckDB CLI output:\n")
+  for (line in views_result) {
+    cat(sprintf("  %s\n", line))
+  }
+  cat("\n")
+}
+
+views_exit <- attr(views_result, "status")
+if (!is.null(views_exit) && views_exit != 0) {
+  cat(sprintf("WARNING: Views creation exited with code %d\n", views_exit))
+  cat("Some views may have failed. Check output above.\n\n")
+}
+
+file.remove(tmp_views_sql)
+
+cat("=== Views creation complete ===\n")
+cat("=== Done ===\n")
