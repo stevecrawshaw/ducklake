@@ -63,12 +63,12 @@ Plans:
   3. Column comments are visible via DuckLake's `COMMENT ON COLUMN` facility
   4. An analyst can query a table at a past snapshot (time travel works)
   5. Pre-built views for common queries (e.g. WECA-area filters) are available in the catalogue
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: DuckLake catalogue creation and non-spatial table registration
-- [ ] 03-02: Metadata comments and view creation
-- [ ] 03-03: Time travel and data change feed validation
+- [ ] 03-01-PLAN.md -- DuckLake catalogue creation and all 18 table registration
+- [ ] 03-02-PLAN.md -- Metadata comments (table + column) and view creation (4 source + 8 WECA)
+- [ ] 03-03-PLAN.md -- Time travel, data change feed, retention, and end-to-end validation
 
 ### Phase 4: Spatial Data Handling
 **Goal**: Spatial tables with WKB_BLOB geometry columns are correctly converted and accessible through both pins and DuckLake
