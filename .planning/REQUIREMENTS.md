@@ -10,7 +10,7 @@
 - [ ] **EXPORT-01**: All 18 DuckDB tables exported as parquet files to S3 bucket
 - [ ] **EXPORT-02**: Table-level comments from source DuckDB preserved through export
 - [ ] **EXPORT-03**: Column-level comments from source DuckDB preserved through export
-- [ ] **EXPORT-04**: WKB_BLOB geometry columns converted to native geometry types during export
+- [x] **EXPORT-04**: WKB_BLOB geometry columns converted to native geometry types during export
 - [ ] **EXPORT-05**: Large tables (19M+ row EPCs) exported without OOM or timeout failures
 
 ### Pins Access
@@ -77,7 +77,7 @@
 | EXPORT-01 | Phase 2 | Complete |
 | EXPORT-02 | Phase 2 | Complete |
 | EXPORT-03 | Phase 2 | Complete |
-| EXPORT-04 | Phase 4 | Pending |
+| EXPORT-04 | Phase 4 | Complete |
 | EXPORT-05 | Phase 2 | Complete |
 | PINS-01 | Phase 2 | Complete |
 | PINS-02 | Phase 2 | Complete |
