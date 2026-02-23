@@ -23,13 +23,13 @@
 
 ### DuckLake Catalogue
 
-- [ ] **LAKE-01**: DuckLake catalogue created on S3 with all 18 tables registered
-- [ ] **LAKE-02**: Analyst can attach DuckLake catalogue and query tables with SQL
-- [ ] **LAKE-03**: Table comments visible via `COMMENT ON TABLE` in DuckLake
-- [ ] **LAKE-04**: Column comments visible via `COMMENT ON COLUMN` in DuckLake
-- [ ] **LAKE-05**: Analyst can query data at a past point in time (time travel)
-- [ ] **LAKE-06**: Analyst can see what changed between data refreshes (data change feed)
-- [ ] **LAKE-07**: Pre-built views available for common queries (e.g. WECA-area filters)
+- [x] **LAKE-01**: DuckLake catalogue created on S3 with all 18 tables registered
+- [x] **LAKE-02**: Analyst can attach DuckLake catalogue and query tables with SQL
+- [x] **LAKE-03**: Table comments visible via `COMMENT ON TABLE` in DuckLake
+- [x] **LAKE-04**: Column comments visible via `COMMENT ON COLUMN` in DuckLake
+- [x] **LAKE-05**: Analyst can query data at a past point in time (time travel)
+- [x] **LAKE-06**: Analyst can see what changed between data refreshes (data change feed)
+- [x] **LAKE-07**: Pre-built views available for common queries (e.g. WECA-area filters)
 
 ### Infrastructure
 
@@ -84,13 +84,13 @@
 | PINS-03 | Phase 2 | Complete |
 | PINS-04 | Phase 2 | Complete |
 | PINS-05 | Phase 2 | Complete |
-| LAKE-01 | Phase 3 | Pending |
-| LAKE-02 | Phase 3 | Pending |
-| LAKE-03 | Phase 3 | Pending |
-| LAKE-04 | Phase 3 | Pending |
-| LAKE-05 | Phase 3 | Pending |
-| LAKE-06 | Phase 3 | Pending |
-| LAKE-07 | Phase 3 | Pending |
+| LAKE-01 | Phase 3 | Complete |
+| LAKE-02 | Phase 3 | Complete |
+| LAKE-03 | Phase 3 | Complete |
+| LAKE-04 | Phase 3 | Complete |
+| LAKE-05 | Phase 3 | Complete |
+| LAKE-06 | Phase 3 | Complete |
+| LAKE-07 | Phase 3 | Complete |
 | INFRA-01 | Phase 1 | Complete |
 | INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 6 | Pending |
@@ -109,4 +109,4 @@
 
 ---
 *Requirements defined: 2026-02-22*
-*Last updated: 2026-02-22 after roadmap creation*
+*Last updated: 2026-02-23 after Phase 3 completion*
