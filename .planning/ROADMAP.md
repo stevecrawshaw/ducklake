@@ -13,8 +13,8 @@ This roadmap delivers a data sharing platform in six phases: secure AWS access f
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: AWS Infrastructure** - Read-only IAM policy and credential configuration for analysts
-- [ ] **Phase 2: Table Export via Pins** - Export non-spatial tables to S3 with metadata, accessible from R and Python
-- [ ] **Phase 3: DuckLake Catalogue** - Register all tables in a DuckLake catalogue with comments, time travel, and views
+- [x] **Phase 2: Table Export via Pins** - Export non-spatial tables to S3 with metadata, accessible from R and Python
+- [x] **Phase 3: DuckLake Catalogue** - Register all tables in a DuckLake catalogue with comments, time travel, and views
 - [ ] **Phase 4: Spatial Data Handling** - Convert WKB_BLOB geometry columns for both pins and DuckLake consumers
 - [ ] **Phase 5: Refresh Pipeline and Data Catalogue** - Repeatable re-export, version management, and queryable table-of-tables
 - [ ] **Phase 6: Analyst Documentation** - Consumer guides for pins and DuckLake access patterns
@@ -66,9 +66,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- DuckLake catalogue creation and all 18 table registration
-- [ ] 03-02-PLAN.md -- Metadata comments (table + column) and view creation (4 source + 8 WECA)
-- [ ] 03-03-PLAN.md -- Time travel, data change feed, retention, and end-to-end validation
+- [x] 03-01-PLAN.md -- DuckLake catalogue creation and all 18 table registration
+- [x] 03-02-PLAN.md -- Metadata comments (table + column) and view creation (4 source + 8 WECA)
+- [x] 03-03-PLAN.md -- Time travel, data change feed, retention, and end-to-end validation
 
 ### Phase 4: Spatial Data Handling
 **Goal**: Spatial tables with WKB_BLOB geometry columns are correctly converted and accessible through both pins and DuckLake
@@ -124,11 +124,11 @@ Note: Phases 3 and 4 could potentially execute in parallel after Phase 2.
 |-------|----------------|--------|-----------|
 | 1. AWS Infrastructure | 2/2 | Complete | 2026-02-22 |
 | 2. Table Export via Pins | 3/3 | Complete | 2026-02-22 |
-| 3. DuckLake Catalogue | 0/3 | Not started | - |
+| 3. DuckLake Catalogue | 3/3 | Complete | 2026-02-23 |
 | 4. Spatial Data Handling | 0/1 | Not started | - |
 | 5. Refresh Pipeline and Data Catalogue | 0/2 | Not started | - |
 | 6. Analyst Documentation | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-22*
-*Last updated: 2026-02-22*
+*Last updated: 2026-02-23*

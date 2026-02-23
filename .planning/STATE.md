@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 
 ## Current Position
 
-Phase: 3 of 6 (DuckLake Catalogue)
-Plan: 2 of 3 complete (03-02 complete)
-Status: In progress
-Last activity: 2026-02-23 -- Completed 03-02-PLAN.md (comments and views)
+Phase: 3 of 6 (DuckLake Catalogue) -- Complete
+Plan: 3 of 3 complete (03-03 complete)
+Status: Phase complete
+Last activity: 2026-02-23 -- Completed 03-03-PLAN.md (time travel and validation)
 
-Progress: [████████░░░░░░] 50%
+Progress: [█████████░░░░░] 60%
 
 ## Performance Metrics
 
@@ -29,11 +29,11 @@ Progress: [████████░░░░░░] 50%
 |-------|-------|-------|----------|
 | 01-aws-infrastructure | 2 | ~2 min | ~1 min |
 | 02-table-export-via-pins | 3 | ~32 min | ~11 min |
-| 03-ducklake-catalogue | 2 | ~38 min | ~19 min |
+| 03-ducklake-catalogue | 3 | ~43 min | ~14 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (~21 min), 02-03 (~5 min), 03-01 (~31 min), 03-02 (~7 min)
-- Trend: Metadata-only plans (comments, views) much faster than data upload plans
+- Last 5 plans: 02-02 (~21 min), 02-03 (~5 min), 03-01 (~31 min), 03-02 (~7 min), 03-03 (~5 min)
+- Trend: Metadata-only plans (comments, views, validation) much faster than data upload plans
 
 *Updated after each plan completion*
 
@@ -60,6 +60,7 @@ Recent decisions affecting current work:
 - [03-02]: Column comments filtered to base tables only (403 of 663; 260 on views excluded)
 - [03-02]: weca_lep_la_vw returns 4 rows (North Somerset is 4th WECA LEP LA, not additional)
 - [03-02]: 3 spatial-dependent views deferred to Phase 4
+- [03-03]: Time-based retention (90 days) chosen over version-count -- DuckLake snapshots are database-wide, not per-table
 
 ### Pending Todos
 
@@ -81,6 +82,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 03-02-PLAN.md (comments and views)
-Resume action: Execute 03-03-PLAN.md (time travel and snapshots)
+Stopped at: Completed 03-03-PLAN.md (time travel and validation) -- Phase 3 complete
+Resume action: Begin Phase 4 (Spatial Data Handling) or Phase 5 (Refresh Pipeline)
 Resume file: None
