@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Analysts can discover and access curated, well-documented datasets from a shared catalogue without needing to know where or how the data is stored.
-**Current focus:** Phase 2 complete -- ready for Phase 3 (DuckLake Catalogue)
+**Current focus:** Phase 3 in progress -- DuckLake Catalogue
 
 ## Current Position
 
-Phase: 2 of 6 (Table Export via Pins) — Complete
-Plan: 3 of 3 complete (02-03 complete)
-Status: Phase complete
-Last activity: 2026-02-22 -- Completed 02-03-PLAN.md (cross-language pin validation)
+Phase: 3 of 6 (DuckLake Catalogue)
+Plan: 1 of 3 complete (03-01 complete)
+Status: In progress
+Last activity: 2026-02-23 -- Completed 03-01-PLAN.md (catalogue creation and table registration)
 
-Progress: [████░░░░░░] 36%
+Progress: [██████░░░░░░░░] 43%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: ~5 minutes
-- Total execution time: ~35 minutes
+- Total plans completed: 6
+- Average duration: ~12 minutes
+- Total execution time: ~66 minutes
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [████░░░░░░] 36%
 |-------|-------|-------|----------|
 | 01-aws-infrastructure | 2 | ~2 min | ~1 min |
 | 02-table-export-via-pins | 3 | ~32 min | ~11 min |
+| 03-ducklake-catalogue | 1 | ~31 min | ~31 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (~1 min), 02-01 (~6 min), 02-02 (~21 min), 02-03 (~5 min)
-- Trend: I/O-heavy plans take longer; validation plans are faster
+- Last 5 plans: 02-01 (~6 min), 02-02 (~21 min), 02-03 (~5 min), 03-01 (~31 min)
+- Trend: S3 upload-heavy plans take longer; 03-01 uploaded 18 tables as parquet to S3
 
 *Updated after each plan completion*
 
@@ -52,6 +53,10 @@ Recent decisions affecting current work:
 - [02-01]: ca_la_lookup_tbl used as interop test table (smallest non-spatial, 106 rows)
 - [02-02]: Chunked pin_upload pattern established for tables with >2GB parquet output (curl upload limit workaround)
 - [02-03]: Python pin_read fails on multi-file pins from pin_upload; arrow dataset fallback required
+- [03-01]: Local .ducklake file required -- DuckDB cannot create database files on S3
+- [03-01]: Spatial columns cast to BLOB for DuckLake compatibility (WKB_BLOB/GEOMETRY not supported)
+- [03-01]: Individual CREATE TABLE used instead of COPY FROM DATABASE (spatial types cause failure)
+- [03-01]: R script uses DuckDB CLI (R duckdb v1.4.4 lacks ducklake extension)
 
 ### Pending Todos
 
@@ -61,6 +66,9 @@ None.
 
 - [Research]: WKB_BLOB to DuckLake native geometry conversion path is LOW confidence -- needs validation spike in Phase 4
 - [Phase 4]: GeoParquet added to research scope -- could unify spatial format for both pins and DuckLake instead of separate WKT/GEOMETRY paths
+- [03-01]: DuckLake catalogue file is local (data/mca_env.ducklake) -- analysts need this file to attach; sharing mechanism TBD
+- [03-01]: Orphaned parquet files on S3 from failed COPY FROM DATABASE attempt; cosmetic, does not affect functionality
+- [03-01]: R duckdb package (v1.4.4) and DuckDB CLI (v1.4.1) version mismatch; scripts use CLI
 - [RESOLVED]: pins R/Python cross-language interoperability validated in 02-01 -- custom metadata round-trips correctly
 - [RESOLVED]: raw_domestic_epc_certificates_tbl (19.3M rows) exported successfully via chunked pin_upload (7 x 3M-row parquet shards)
 - [RESOLVED]: All 10 non-spatial pins validated readable from both R and Python with correct metadata (02-03)
@@ -69,7 +77,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-22
-Stopped at: Phase 2 complete (all 3 plans executed successfully)
-Resume action: Begin Phase 3 (DuckLake Catalogue) or Phase 4 (Spatial Tables)
+Last session: 2026-02-23
+Stopped at: Completed 03-01-PLAN.md (DuckLake catalogue creation)
+Resume action: Execute 03-02-PLAN.md (comments and views)
 Resume file: None
