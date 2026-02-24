@@ -514,4 +514,287 @@ if (n_fail > 0) {
 }
 
 cat(sprintf("\nOverall: %s\n", if (n_fail == 0) "ALL PASSED" else "SOME FAILED"))
+
+# ============================================================
+# STEP 5: Generate datasets_catalogue
+# ============================================================
+cat("\n--- Step 5: Generate datasets_catalogue ---\n")
+
+# --- View description mapping ---
+# WECA-filtered views: derive from base table name
+# Non-WECA views: explicit descriptions
+VIEW_DESCRIPTIONS <- list(
+  ca_la_lookup_inc_ns_vw = "CA/LA lookup including North Somerset",
+  weca_lep_la_vw = "WECA LEP local authorities",
+  ca_la_ghg_emissions_sub_sector_ods_vw = "GHG emissions by sub-sector with CA/LA lookup",
+  epc_domestic_vw = "Domestic EPC certificates with derived fields"
+)
+
+#' Generate description for a view based on name pattern
+get_view_description <- function(view_name) {
+  # Check explicit descriptions first
+  if (view_name %in% names(VIEW_DESCRIPTIONS)) {
+    return(VIEW_DESCRIPTIONS[[view_name]])
+  }
+  # WECA-filtered views: extract base table name
+  if (grepl("_weca_vw$", view_name)) {
+    base_name <- sub("_weca_vw$", "_tbl", view_name)
+    # Handle edge cases where _tbl suffix doesn't exist
+    if (!base_name %in% tables_df$table_name) {
+      base_name <- sub("_weca_vw$", "", view_name)
+    }
+    return(sprintf("WECA-filtered subset of %s", base_name))
+  }
+  return(view_name)
+}
+
+#' Extract source table name from view name
+get_view_source_table <- function(view_name) {
+  if (view_name == "ca_la_lookup_inc_ns_vw") return("ca_la_lookup_tbl")
+  if (view_name == "weca_lep_la_vw") return("ca_la_lookup_tbl")
+  if (view_name == "ca_la_ghg_emissions_sub_sector_ods_vw") return("la_ghg_emissions_tbl")
+  if (view_name == "epc_domestic_vw") return("raw_domestic_epc_certificates_tbl")
+  if (grepl("_weca_vw$", view_name)) {
+    base_name <- sub("_weca_vw$", "_tbl", view_name)
+    if (base_name %in% tables_df$table_name) return(base_name)
+    return(sub("_weca_vw$", "", view_name))
+  }
+  return(NA_character_)
+}
+
+# --- Get view names and row counts via DuckDB CLI ---
+cat("  Querying views from DuckLake...\n")
+
+view_list_sql <- paste(
+  "INSTALL ducklake; LOAD ducklake;",
+  "INSTALL httpfs; LOAD httpfs;",
+  "INSTALL aws; LOAD aws;",
+  "INSTALL spatial; LOAD spatial;",
+  "CREATE SECRET (TYPE s3, REGION 'eu-west-2', PROVIDER credential_chain);",
+  sprintf("ATTACH 'ducklake:%s' AS lake (DATA_PATH '%s', READ_ONLY);",
+          gsub("\\\\", "/", DUCKLAKE_FILE), DATA_PATH),
+  "SELECT view_name FROM duckdb_views() WHERE database_name = 'lake' ORDER BY view_name;",
+  sep = "\n"
+)
+
+view_result <- run_duckdb_cli(view_list_sql, timeout = 120)
+
+# Parse view names from CLI output
+view_names <- character(0)
+for (line in view_result$output) {
+  cleaned <- gsub("\u2502", "|", line)
+  parts <- trimws(unlist(strsplit(cleaned, "\\|")))
+  parts <- parts[nchar(parts) > 0]
+  if (length(parts) == 1 && grepl("_vw$", parts[1])) {
+    view_names <- c(view_names, parts[1])
+  }
+}
+
+cat(sprintf("  Found %d views\n", length(view_names)))
+
+# --- Get row counts for views via DuckDB CLI ---
+if (length(view_names) > 0) {
+  cat("  Getting view row counts...\n")
+  view_count_queries <- vapply(view_names, function(vw) {
+    sprintf("SELECT '%s' AS tbl, COUNT(*) AS n FROM lake.%s", vw, vw)
+  }, character(1))
+
+  view_count_sql <- paste(
+    "INSTALL ducklake; LOAD ducklake;",
+    "INSTALL httpfs; LOAD httpfs;",
+    "INSTALL aws; LOAD aws;",
+    "INSTALL spatial; LOAD spatial;",
+    "CREATE SECRET (TYPE s3, REGION 'eu-west-2', PROVIDER credential_chain);",
+    sprintf("ATTACH 'ducklake:%s' AS lake (DATA_PATH '%s', READ_ONLY);",
+            gsub("\\\\", "/", DUCKLAKE_FILE), DATA_PATH),
+    paste(paste(view_count_queries, collapse = "\nUNION ALL\n"), ";"),
+    sep = "\n"
+  )
+
+  view_count_result <- run_duckdb_cli(view_count_sql, timeout = 600)
+
+  view_counts <- setNames(rep(NA_real_, length(view_names)), view_names)
+  for (line in view_count_result$output) {
+    cleaned <- gsub("\u2502", "|", line)
+    parts <- trimws(unlist(strsplit(cleaned, "\\|")))
+    parts <- parts[nchar(parts) > 0]
+    if (length(parts) == 2 && parts[1] %in% view_names) {
+      val <- suppressWarnings(as.numeric(parts[2]))
+      if (!is.na(val)) {
+        view_counts[parts[1]] <- val
+      }
+    }
+  }
+} else {
+  view_counts <- numeric(0)
+}
+
+# --- Get spatial bounding boxes via DuckDB CLI ---
+cat("  Computing spatial bounding boxes...\n")
+
+spatial_tables <- SPATIAL_META$table_name
+bbox_queries <- vapply(seq_len(nrow(SPATIAL_META)), function(i) {
+  tbl <- SPATIAL_META$table_name[i]
+  gcol <- SPATIAL_META$geom_col[i]
+  sprintf(
+    "SELECT '%s' AS tbl, ST_XMin(ST_Extent_Agg(%s)) AS xmin, ST_YMin(ST_Extent_Agg(%s)) AS ymin, ST_XMax(ST_Extent_Agg(%s)) AS xmax, ST_YMax(ST_Extent_Agg(%s)) AS ymax FROM lake.%s",
+    tbl, gcol, gcol, gcol, gcol, tbl
+  )
+}, character(1))
+
+bbox_sql <- paste(
+  "INSTALL ducklake; LOAD ducklake;",
+  "INSTALL httpfs; LOAD httpfs;",
+  "INSTALL aws; LOAD aws;",
+  "INSTALL spatial; LOAD spatial;",
+  "CREATE SECRET (TYPE s3, REGION 'eu-west-2', PROVIDER credential_chain);",
+  sprintf("ATTACH 'ducklake:%s' AS lake (DATA_PATH '%s', READ_ONLY);",
+          gsub("\\\\", "/", DUCKLAKE_FILE), DATA_PATH),
+  paste(paste(bbox_queries, collapse = "\nUNION ALL\n"), ";"),
+  sep = "\n"
+)
+
+bbox_result <- run_duckdb_cli(bbox_sql, timeout = 300)
+
+# Parse bounding box results
+bbox_data <- data.frame(
+  table_name = character(0),
+  bbox_xmin = numeric(0), bbox_ymin = numeric(0),
+  bbox_xmax = numeric(0), bbox_ymax = numeric(0),
+  stringsAsFactors = FALSE
+)
+
+for (line in bbox_result$output) {
+  cleaned <- gsub("\u2502", "|", line)
+  parts <- trimws(unlist(strsplit(cleaned, "\\|")))
+  parts <- parts[nchar(parts) > 0]
+  if (length(parts) == 5 && parts[1] %in% spatial_tables) {
+    vals <- suppressWarnings(as.numeric(parts[2:5]))
+    if (!any(is.na(vals))) {
+      bbox_data <- rbind(bbox_data, data.frame(
+        table_name = parts[1],
+        bbox_xmin = vals[1], bbox_ymin = vals[2],
+        bbox_xmax = vals[3], bbox_ymax = vals[4],
+        stringsAsFactors = FALSE
+      ))
+    }
+  }
+}
+
+# --- Build datasets_catalogue data.frame ---
+cat("  Building datasets_catalogue...\n")
+
+refresh_timestamp <- format(run_start, "%Y-%m-%d %H:%M:%S")
+
+# Base tables rows
+base_rows <- data.frame(
+  name = tables_df$table_name,
+  description = ifelse(is.na(tables_df$comment), "", tables_df$comment),
+  type = "table",
+  row_count = tables_df$source_rows,
+  last_updated = refresh_timestamp,
+  source_table = tables_df$table_name,
+  stringsAsFactors = FALSE
+)
+
+# Add spatial metadata for base tables
+base_rows$geometry_type <- NA_character_
+base_rows$crs <- NA_character_
+base_rows$bbox_xmin <- NA_real_
+base_rows$bbox_ymin <- NA_real_
+base_rows$bbox_xmax <- NA_real_
+base_rows$bbox_ymax <- NA_real_
+
+for (i in seq_len(nrow(SPATIAL_META))) {
+  tbl <- SPATIAL_META$table_name[i]
+  idx <- which(base_rows$name == tbl)
+  if (length(idx) == 1) {
+    base_rows$geometry_type[idx] <- SPATIAL_META$geom_type[i]
+    base_rows$crs[idx] <- SPATIAL_META$crs[i]
+    # Add bounding box if available
+    bbox_idx <- which(bbox_data$table_name == tbl)
+    if (length(bbox_idx) == 1) {
+      base_rows$bbox_xmin[idx] <- bbox_data$bbox_xmin[bbox_idx]
+      base_rows$bbox_ymin[idx] <- bbox_data$bbox_ymin[bbox_idx]
+      base_rows$bbox_xmax[idx] <- bbox_data$bbox_xmax[bbox_idx]
+      base_rows$bbox_ymax[idx] <- bbox_data$bbox_ymax[bbox_idx]
+    }
+  }
+}
+
+# View rows
+if (length(view_names) > 0) {
+  view_rows <- data.frame(
+    name = view_names,
+    description = vapply(view_names, get_view_description, character(1)),
+    type = "view",
+    row_count = as.numeric(view_counts[view_names]),
+    last_updated = refresh_timestamp,
+    source_table = vapply(view_names, get_view_source_table, character(1)),
+    geometry_type = NA_character_,
+    crs = NA_character_,
+    bbox_xmin = NA_real_,
+    bbox_ymin = NA_real_,
+    bbox_xmax = NA_real_,
+    bbox_ymax = NA_real_,
+    stringsAsFactors = FALSE
+  )
+  datasets_df <- rbind(base_rows, view_rows)
+} else {
+  datasets_df <- base_rows
+}
+
+cat(sprintf("  datasets_catalogue: %d rows (%d tables, %d views)\n",
+            nrow(datasets_df),
+            sum(datasets_df$type == "table"),
+            sum(datasets_df$type == "view")))
+
+# --- Write to DuckLake via temp CSV ---
+tmp_datasets_csv <- file.path(tempdir(), "datasets_catalogue.csv")
+tmp_datasets_csv_sql <- gsub("\\\\", "/", tmp_datasets_csv)
+write.csv(datasets_df, tmp_datasets_csv, row.names = FALSE, fileEncoding = "UTF-8")
+
+datasets_load_sql <- paste(
+  "INSTALL ducklake; LOAD ducklake;",
+  "INSTALL httpfs; LOAD httpfs;",
+  "INSTALL aws; LOAD aws;",
+  "INSTALL spatial; LOAD spatial;",
+  "CREATE SECRET (TYPE s3, REGION 'eu-west-2', PROVIDER credential_chain);",
+  sprintf("ATTACH 'ducklake:%s' AS lake (DATA_PATH '%s');",
+          gsub("\\\\", "/", DUCKLAKE_FILE), DATA_PATH),
+  sprintf("CREATE OR REPLACE TABLE lake.datasets_catalogue AS SELECT * FROM read_csv('%s');",
+          tmp_datasets_csv_sql),
+  sep = "\n"
+)
+
+datasets_load_result <- run_duckdb_cli(datasets_load_sql, timeout = 120)
+file.remove(tmp_datasets_csv)
+
+if (datasets_load_result$exit_code != 0) {
+  cat("  WARNING: Failed to load datasets_catalogue into DuckLake\n")
+  for (line in datasets_load_result$output) cat(sprintf("    %s\n", line))
+} else {
+  cat("  datasets_catalogue loaded into DuckLake\n")
+}
+
+# --- Pin datasets_catalogue to S3 ---
+cat("  Pinning datasets_catalogue to S3...\n")
+pin_write(
+  board,
+  x = datasets_df,
+  name = "datasets_catalogue",
+  type = "parquet",
+  title = "datasets_catalogue",
+  description = sprintf("Data catalogue: %d datasets (%d tables, %d views). Generated %s",
+                        nrow(datasets_df),
+                        sum(datasets_df$type == "table"),
+                        sum(datasets_df$type == "view"),
+                        refresh_timestamp),
+  metadata = list(
+    source = "refresh.R catalogue generation",
+    generated = refresh_timestamp
+  )
+)
+cat("  datasets_catalogue pinned to S3\n")
+
 cat("\nDone.\n")
