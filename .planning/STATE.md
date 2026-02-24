@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Analysts can discover and access curated, well-documented datasets from a shared catalogue without needing to know where or how the data is stored.
-**Current focus:** Phase 4 complete -- ready for Phase 5 (Refresh Pipeline and Data Catalogue)
+**Current focus:** Phase 5 in progress -- Refresh Pipeline and Data Catalogue
 
 ## Current Position
 
-Phase: 4 of 6 (Spatial Data Handling)
-Plan: 2 of 2 complete (phase complete)
-Status: Phase complete
-Last activity: 2026-02-23 -- Completed 04-02-PLAN.md (batch spatial conversion and GeoParquet pins)
+Phase: 5 of 6 (Refresh Pipeline and Data Catalogue)
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-02-24 -- Completed 05-01-PLAN.md (unified refresh pipeline)
 
-Progress: [████████████░░] 83%
+Progress: [████████████░░░] 85%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: ~9 minutes
-- Total execution time: ~83 minutes
+- Total plans completed: 10
+- Average duration: ~11 minutes
+- Total execution time: ~109 minutes
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [████████████░░] 83%
 | 02-table-export-via-pins | 3 | ~32 min | ~11 min |
 | 03-ducklake-catalogue | 3 | ~43 min | ~14 min |
 | 04-spatial-data-handling | 2 | ~10 min | ~5 min |
+| 05-refresh-pipeline | 1 | ~26 min | ~26 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (~31 min), 03-02 (~7 min), 03-03 (~5 min), 04-01 (~7 min), 04-02 (~3 min)
-- Trend: Batch spatial conversion fast -- patterns established in spike, no new issues
+- Last 5 plans: 03-02 (~7 min), 03-03 (~5 min), 04-01 (~7 min), 04-02 (~3 min), 05-01 (~26 min)
+- Trend: Refresh pipeline slower due to 18-table re-export (217s DuckLake + 400s pins including 19M-row EPC)
 
 *Updated after each plan completion*
 
@@ -68,6 +69,9 @@ Recent decisions affecting current work:
 - [04-01]: geopandas added as Python dependency for spatial pin consumption
 - [04-02]: Export from source DB (not lake) for GeoParquet -- avoids S3 round-trip
 - [04-02]: geom_valid flag preserves original data -- analysts decide how to handle invalid geometries
+- [05-01]: Batch DuckLake operations: all 18 DROP+CREATE in single SQL file, one CLI call
+- [05-01]: Batch row count validation via UNION ALL query (one CLI call instead of 18)
+- [05-01]: DuckDB CLI box-drawing output parsed by replacing unicode pipe chars and splitting
 
 ### Pending Todos
 
@@ -87,7 +91,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-23
-Stopped at: Completed 04-02-PLAN.md (batch spatial conversion and GeoParquet pins) -- Phase 4 complete
-Resume action: Begin Phase 5 (Refresh Pipeline and Data Catalogue)
-Resume file: None
+Last session: 2026-02-24
+Stopped at: Completed 05-01-PLAN.md (unified refresh pipeline)
+Resume action: Execute 05-02-PLAN.md (Data Catalogue)
+Resume file: .planning/phases/05-refresh-pipeline-and-data-catalogue/05-02-PLAN.md

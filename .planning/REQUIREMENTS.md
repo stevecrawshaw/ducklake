@@ -46,9 +46,9 @@
 
 ### Refresh Pipeline
 
-- [ ] **REFRESH-01**: Script to re-export updated tables from source DuckDB to S3
-- [ ] **REFRESH-02**: Refresh preserves DuckLake history (snapshots retained for time travel)
-- [ ] **REFRESH-03**: Refresh updates pins versions so analysts can see new data
+- [x] **REFRESH-01**: Script to re-export updated tables from source DuckDB to S3
+- [x] **REFRESH-02**: Refresh preserves DuckLake history (snapshots retained for time travel)
+- [x] **REFRESH-03**: Refresh updates pins versions so analysts can see new data
 
 ## v2 Requirements
 
@@ -98,9 +98,9 @@
 | CAT-01 | Phase 5 | Pending |
 | CAT-02 | Phase 5 | Pending |
 | CAT-03 | Phase 5 | Pending |
-| REFRESH-01 | Phase 5 | Pending |
-| REFRESH-02 | Phase 5 | Pending |
-| REFRESH-03 | Phase 5 | Pending |
+| REFRESH-01 | Phase 5 | Complete |
+| REFRESH-02 | Phase 5 | Complete |
+| REFRESH-03 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 27 total
