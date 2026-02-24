@@ -94,11 +94,11 @@ Plans:
   2. After a refresh, DuckLake snapshots are retained so analysts can still query previous versions
   3. After a refresh, pins versions are updated so analysts see the new data
   4. A queryable table-of-tables exists listing all datasets with descriptions, column details, row counts, and last updated dates
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Refresh pipeline (re-export orchestration)
-- [ ] 05-02: Data catalogue manifest
+- [ ] 05-01-PLAN.md -- Unified refresh pipeline (re-export all 18 tables to DuckLake + pins with row count validation)
+- [ ] 05-02-PLAN.md -- Data catalogue generation (datasets_catalogue + columns_catalogue as DuckLake tables and S3 pins)
 
 ### Phase 6: Analyst Documentation
 **Goal**: An analyst can go from zero to querying data independently, using only the provided documentation
