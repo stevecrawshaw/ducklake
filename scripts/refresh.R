@@ -797,4 +797,223 @@ pin_write(
 )
 cat("  datasets_catalogue pinned to S3\n")
 
+# ============================================================
+# STEP 6: Generate columns_catalogue
+# ============================================================
+cat("\n--- Step 6: Generate columns_catalogue ---\n")
+
+# --- Use source DB column metadata (already loaded, has comments) ---
+# Filter to base tables only (exclude views, exclude catalogue tables)
+lake_columns <- columns_df[columns_df$table_name %in% tables_df$table_name, ]
+names(lake_columns)[names(lake_columns) == "comment"] <- "description"
+
+# Adjust data types for spatial columns: source has WKB_BLOB, DuckLake has GEOMETRY
+for (i in seq_len(nrow(SPATIAL_META))) {
+  gcol <- SPATIAL_META$geom_col[i]
+  tbl <- SPATIAL_META$table_name[i]
+  idx <- which(lake_columns$table_name == tbl & lake_columns$column_name == gcol)
+  if (length(idx) == 1) {
+    lake_columns$data_type[idx] <- "GEOMETRY"
+  }
+}
+
+# Add geom_valid column for lsoa_2021_lep_tbl (added during spatial conversion)
+lsoa_idx <- which(lake_columns$table_name == "lsoa_2021_lep_tbl")
+if (length(lsoa_idx) > 0) {
+  last_lsoa <- max(lsoa_idx)
+  lake_columns <- rbind(
+    lake_columns[1:last_lsoa, ],
+    data.frame(
+      table_name = "lsoa_2021_lep_tbl",
+      column_name = "geom_valid",
+      data_type = "BOOLEAN",
+      description = "Whether the geometry is valid (ST_IsValid)",
+      stringsAsFactors = FALSE
+    ),
+    if (last_lsoa < nrow(lake_columns)) lake_columns[(last_lsoa + 1):nrow(lake_columns), ] else NULL
+  )
+}
+
+cat(sprintf("  Found %d columns across %d tables\n",
+            nrow(lake_columns), length(unique(lake_columns$table_name))))
+
+# --- Sample example values per table ---
+cat("  Sampling example values...\n")
+
+# For non-spatial tables: use R DuckDB connection (fast, no CLI parsing)
+# For spatial tables: use DuckDB CLI (needs spatial extension for ST_AsText)
+
+example_values <- data.frame(
+  table_name = character(0),
+  column_name = character(0),
+  example_1 = character(0),
+  example_2 = character(0),
+  example_3 = character(0),
+  stringsAsFactors = FALSE
+)
+
+unique_tables <- unique(lake_columns$table_name)
+
+for (tbl in unique_tables) {
+  tbl_cols <- lake_columns[lake_columns$table_name == tbl, ]
+  is_spatial_tbl <- tbl %in% SPATIAL_META$table_name
+
+  if (!is_spatial_tbl) {
+    # --- Non-spatial: sample via R DuckDB connection ---
+    for (j in seq_len(nrow(tbl_cols))) {
+      col_name <- tbl_cols$column_name[j]
+      col_type <- tbl_cols$data_type[j]
+
+      if (grepl("BLOB", col_type, ignore.case = TRUE)) {
+        ex <- c(NA_character_, NA_character_, NA_character_)
+      } else {
+        sample_q <- sprintf(
+          "SELECT DISTINCT CAST(\"%s\" AS VARCHAR) AS val FROM (SELECT \"%s\" FROM \"%s\" WHERE \"%s\" IS NOT NULL LIMIT 1000) LIMIT 3",
+          col_name, col_name, tbl, col_name
+        )
+        sample_res <- tryCatch(
+          dbGetQuery(con, sample_q)$val,
+          error = function(e) character(0)
+        )
+        ex <- c(sample_res, rep(NA_character_, 3))[1:3]
+      }
+
+      example_values <- rbind(example_values, data.frame(
+        table_name = tbl, column_name = col_name,
+        example_1 = ex[1], example_2 = ex[2], example_3 = ex[3],
+        stringsAsFactors = FALSE
+      ))
+    }
+  } else {
+    # --- Spatial: sample via DuckDB CLI (needs spatial extension) ---
+    # Build per-column queries, output to temp CSV
+    tmp_sample_csv <- file.path(tempdir(), sprintf("sample_%s.csv", tbl))
+    tmp_sample_csv_sql <- gsub("\\\\", "/", tmp_sample_csv)
+
+    sample_parts <- character(0)
+    for (j in seq_len(nrow(tbl_cols))) {
+      col_name <- tbl_cols$column_name[j]
+      col_type <- tbl_cols$data_type[j]
+
+      if (grepl("BLOB", col_type, ignore.case = TRUE)) {
+        example_values <- rbind(example_values, data.frame(
+          table_name = tbl, column_name = col_name,
+          example_1 = NA_character_, example_2 = NA_character_, example_3 = NA_character_,
+          stringsAsFactors = FALSE
+        ))
+        next
+      }
+
+      if (grepl("GEOMETRY", col_type, ignore.case = TRUE)) {
+        # Skip geometry example values (too large as WKT)
+        example_values <- rbind(example_values, data.frame(
+          table_name = tbl, column_name = col_name,
+          example_1 = NA_character_, example_2 = NA_character_, example_3 = NA_character_,
+          stringsAsFactors = FALSE
+        ))
+        next
+      }
+
+      # Handle geom_valid (only exists in DuckLake, not source DB)
+      if (col_name == "geom_valid") {
+        ex <- c("true", "false", NA_character_)
+      } else {
+        # Sample non-geometry columns from source DB
+        sample_q <- sprintf(
+          "SELECT DISTINCT CAST(\"%s\" AS VARCHAR) AS val FROM (SELECT \"%s\" FROM \"%s\" WHERE \"%s\" IS NOT NULL LIMIT 1000) LIMIT 3",
+          col_name, col_name, tbl, col_name
+        )
+        sample_res <- tryCatch(
+          dbGetQuery(con, sample_q)$val,
+          error = function(e) character(0)
+        )
+        ex <- c(sample_res, rep(NA_character_, 3))[1:3]
+      }
+
+      example_values <- rbind(example_values, data.frame(
+        table_name = tbl, column_name = col_name,
+        example_1 = ex[1], example_2 = ex[2], example_3 = ex[3],
+        stringsAsFactors = FALSE
+      ))
+    }
+  }
+
+  cat(sprintf("    %s: %d columns sampled\n", tbl, nrow(tbl_cols)))
+}
+
+# --- Merge column metadata with example values ---
+columns_cat <- merge(lake_columns, example_values,
+                     by = c("table_name", "column_name"),
+                     all.x = TRUE)
+
+# Sort by table_name, preserving column order within each table
+columns_cat <- columns_cat[order(columns_cat$table_name, match(
+  paste(columns_cat$table_name, columns_cat$column_name),
+  paste(lake_columns$table_name, lake_columns$column_name)
+)), ]
+
+cat(sprintf("  columns_catalogue: %d rows across %d tables\n",
+            nrow(columns_cat), length(unique(columns_cat$table_name))))
+
+# --- Write to DuckLake via temp CSV ---
+tmp_columns_csv <- file.path(tempdir(), "columns_catalogue.csv")
+tmp_columns_csv_sql <- gsub("\\\\", "/", tmp_columns_csv)
+write.csv(columns_cat, tmp_columns_csv, row.names = FALSE, fileEncoding = "UTF-8")
+
+columns_load_sql <- paste(
+  "INSTALL ducklake; LOAD ducklake;",
+  "INSTALL httpfs; LOAD httpfs;",
+  "INSTALL aws; LOAD aws;",
+  "INSTALL spatial; LOAD spatial;",
+  "CREATE SECRET (TYPE s3, REGION 'eu-west-2', PROVIDER credential_chain);",
+  sprintf("ATTACH 'ducklake:%s' AS lake (DATA_PATH '%s');",
+          gsub("\\\\", "/", DUCKLAKE_FILE), DATA_PATH),
+  sprintf("CREATE OR REPLACE TABLE lake.columns_catalogue AS SELECT * FROM read_csv('%s');",
+          tmp_columns_csv_sql),
+  sep = "\n"
+)
+
+columns_load_result <- run_duckdb_cli(columns_load_sql, timeout = 120)
+file.remove(tmp_columns_csv)
+
+if (columns_load_result$exit_code != 0) {
+  cat("  WARNING: Failed to load columns_catalogue into DuckLake\n")
+  for (line in columns_load_result$output) cat(sprintf("    %s\n", line))
+} else {
+  cat("  columns_catalogue loaded into DuckLake\n")
+}
+
+# --- Pin columns_catalogue to S3 ---
+cat("  Pinning columns_catalogue to S3...\n")
+pin_write(
+  board,
+  x = columns_cat,
+  name = "columns_catalogue",
+  type = "parquet",
+  title = "columns_catalogue",
+  description = sprintf("Column catalogue: %d columns across %d tables. Generated %s",
+                        nrow(columns_cat),
+                        length(unique(columns_cat$table_name)),
+                        refresh_timestamp),
+  metadata = list(
+    source = "refresh.R catalogue generation",
+    generated = refresh_timestamp
+  )
+)
+cat("  columns_catalogue pinned to S3\n")
+
+# ============================================================
+# Final summary
+# ============================================================
+cat_elapsed <- as.numeric(difftime(Sys.time(), run_start, units = "secs"))
+cat(sprintf("\n=== Catalogue generation complete ===\n"))
+cat(sprintf("  datasets_catalogue: %d rows (%d tables, %d views)\n",
+            nrow(datasets_df),
+            sum(datasets_df$type == "table"),
+            sum(datasets_df$type == "view")))
+cat(sprintf("  columns_catalogue:  %d rows across %d tables\n",
+            nrow(columns_cat),
+            length(unique(columns_cat$table_name))))
+cat(sprintf("  Total pipeline time: %.1f seconds\n", cat_elapsed))
+
 cat("\nDone.\n")
