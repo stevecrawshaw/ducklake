@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Analysts can discover and access curated, well-documented datasets from a shared catalogue without needing to know where or how the data is stored.
-**Current focus:** Phase 5 in progress -- Refresh Pipeline and Data Catalogue
+**Current focus:** Phase 5 complete -- ready for Phase 6 (Analyst Documentation)
 
 ## Current Position
 
 Phase: 5 of 6 (Refresh Pipeline and Data Catalogue)
-Plan: 1 of 2 complete
-Status: In progress
-Last activity: 2026-02-24 -- Completed 05-01-PLAN.md (unified refresh pipeline)
+Plan: 2 of 2 complete
+Status: Phase complete
+Last activity: 2026-02-24 -- Completed 05-02-PLAN.md (data catalogue)
 
-Progress: [████████████░░░] 85%
+Progress: [██████████████░] 92%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: ~11 minutes
-- Total execution time: ~109 minutes
+- Total plans completed: 11
+- Average duration: ~15 minutes
+- Total execution time: ~160 minutes
 
 **By Phase:**
 
@@ -31,11 +31,11 @@ Progress: [████████████░░░] 85%
 | 02-table-export-via-pins | 3 | ~32 min | ~11 min |
 | 03-ducklake-catalogue | 3 | ~43 min | ~14 min |
 | 04-spatial-data-handling | 2 | ~10 min | ~5 min |
-| 05-refresh-pipeline | 1 | ~26 min | ~26 min |
+| 05-refresh-pipeline | 2 | ~77 min | ~39 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (~7 min), 03-03 (~5 min), 04-01 (~7 min), 04-02 (~3 min), 05-01 (~26 min)
-- Trend: Refresh pipeline slower due to 18-table re-export (217s DuckLake + 400s pins including 19M-row EPC)
+- Last 5 plans: 03-03 (~5 min), 04-01 (~7 min), 04-02 (~3 min), 05-01 (~26 min), 05-02 (~51 min)
+- Trend: Catalogue plan slower due to full refresh + catalogue generation + bug fix iterations
 
 *Updated after each plan completion*
 
@@ -72,6 +72,10 @@ Recent decisions affecting current work:
 - [05-01]: Batch DuckLake operations: all 18 DROP+CREATE in single SQL file, one CLI call
 - [05-01]: Batch row count validation via UNION ALL query (one CLI call instead of 18)
 - [05-01]: DuckDB CLI box-drawing output parsed by replacing unicode pipe chars and splitting
+- [05-02]: Source DB column metadata used for catalogue (DuckLake loses comments on DROP+CREATE)
+- [05-02]: ST_Extent_Agg for aggregate bounding boxes (ST_Extent is per-geometry, not aggregate)
+- [05-02]: Example values sampled via R DuckDB connection (not CLI) to avoid Windows encoding issues
+- [05-02]: GEOMETRY/BLOB columns get NULL examples; view descriptions generated from name patterns
 
 ### Pending Todos
 
@@ -92,6 +96,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 05-01-PLAN.md (unified refresh pipeline)
-Resume action: Execute 05-02-PLAN.md (Data Catalogue)
-Resume file: .planning/phases/05-refresh-pipeline-and-data-catalogue/05-02-PLAN.md
+Stopped at: Completed 05-02-PLAN.md (data catalogue)
+Resume action: Plan Phase 6 (Analyst Documentation)
+Resume file: .planning/phases/05-refresh-pipeline-and-data-catalogue/05-02-SUMMARY.md
