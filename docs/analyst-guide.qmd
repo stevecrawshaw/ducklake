@@ -1,0 +1,214 @@
+---
+title: "WECA Data Platform: Analyst Guide"
+subtitle: "Accessing shared datasets via pins and DuckLake"
+author: "West of England Combined Authority"
+date: last-modified
+title-block-banner: true
+format:
+  html:
+    theme: [default, custom.scss]
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    embed-resources: true
+  weca-report-typst:
+    toc: true
+    toc-depth: 3
+execute:
+  echo: true
+  eval: false
+  warning: false
+---
+
+![](weca_logo.jpg){width=200px fig-align="left"}
+
+# Introduction
+
+<!-- Content: What this guide covers, who it's for, and the 10-minute promise.
+     Explain that WECA's shared data platform provides 18 curated datasets
+     accessible via R pins (primary), DuckLake SQL catalogue, and Python (appendix).
+     An unfamiliar analyst should be able to read their first dataset within 10 minutes. -->
+
+# Prerequisites and Setup
+
+<!-- Content: Everything an analyst needs before accessing data.
+     This section ensures a complete zero-to-working setup. -->
+
+## R Packages
+
+<!-- Content: install.packages() for pins, arrow, sf, duckdb, DBI.
+     Note minimum versions. Mention tidyverse assumed. -->
+
+## DuckDB Installation
+
+<!-- Content: How to install DuckDB CLI (needed for DuckLake queries).
+     Note: R duckdb package (v1.4.4) lacks ducklake extension — CLI is required.
+     Download link and verification command. -->
+
+## AWS Credentials
+
+<!-- Content: Incorporate content from docs/analyst-aws-setup.md.
+     Cover: how to request access, configure credentials locally (~/.aws/credentials),
+     set default region (eu-west-2), verify connectivity with aws s3 ls. -->
+
+# Available Datasets
+
+<!-- Content: Quick reference table of all 18 datasets + views.
+     Columns: name, description, type (non-spatial/spatial), row count, source.
+     Note: full details available by querying the DuckLake data catalogue
+     (datasets_catalogue and columns_catalogue tables).
+     Link forward to the "Querying the Data Catalogue" subsection. -->
+
+# Accessing Data via Pins
+
+<!-- Content: Primary data access method for R analysts.
+     All examples use the pins package with S3 board. -->
+
+## Creating a Board
+
+<!-- Content: board_s3() with bucket, prefix, region, versioned params.
+     Bucket: stevecrawshaw-bucket, prefix: pins/, region: eu-west-2. -->
+
+## Listing Datasets
+
+<!-- Content: pin_list(board) to see all available datasets.
+     Show expected output (list of 18+ pin names). -->
+
+## Reading a Dataset
+
+<!-- Content: pin_read(board, "table_name") for standard tables.
+     Use ca_la_lookup_tbl as first example (small, quick).
+     Show glimpse/str of result. -->
+
+## Accessing Metadata
+
+<!-- Content: pin_meta(board, "table_name") for descriptions and column info.
+     Show meta$title, meta$description, meta$user$columns.
+     Explain that metadata comes from the data catalogue. -->
+
+## Large Datasets
+
+<!-- Content: The EPC table is too large for pin_read (multi-file pin).
+     Use pin_download() + arrow::read_parquet() or arrow::open_dataset() instead.
+     Show the fallback pattern with raw_domestic_epc_certificates_tbl. -->
+
+# Querying the DuckLake Catalogue
+
+<!-- Content: SQL-based access via DuckDB CLI.
+     For analysts comfortable with SQL, or when complex queries/joins are needed. -->
+
+## Installing Extensions
+
+<!-- Content: INSTALL ducklake; LOAD ducklake;
+     INSTALL httpfs; LOAD httpfs; (for S3 access)
+     Note these are one-time installations. -->
+
+## Attaching the Catalogue
+
+<!-- Content: CREATE SECRET for AWS credentials.
+     ATTACH 'ducklake:data/mca_env.ducklake' AS lake syntax.
+     Explain: analysts must have the .ducklake file locally (clone the repo).
+     DATA_PATH points to S3 where actual data lives. -->
+
+## Basic SQL Queries
+
+<!-- Content: SELECT, WHERE, JOIN, GROUP BY examples using DuckLake tables.
+     Use familiar tables (ca_la_lookup_tbl, la_ghg_emissions_tbl).
+     Show practical queries analysts would actually run. -->
+
+## Using Views
+
+<!-- Content: WECA-filtered views (e.g., la_ghg_emissions_weca_vw).
+     Explain views pre-filter to WECA local authorities.
+     SHOW TABLES to list available views. -->
+
+## Querying the Data Catalogue
+
+<!-- Content: SELECT from datasets_catalogue and columns_catalogue.
+     Show how to discover dataset descriptions, column meanings, row counts.
+     This is the programmatic alternative to the quick reference table above. -->
+
+## Time Travel
+
+<!-- Content: Brief syntax example — not a full section.
+     SELECT ... FROM table AT (VERSION => N) syntax.
+     Mention 90-day snapshot retention policy. -->
+
+# Working with Spatial Data
+
+<!-- Content: 8 spatial datasets available as GeoParquet pins.
+     Important: do NOT use sfarrow (fails on DuckDB GeoParquet). -->
+
+## Reading GeoParquet Pins
+
+<!-- Content: pin_download() to get GeoParquet file path.
+     arrow::read_parquet() to read (not pin_read, not sfarrow). -->
+
+## Converting to sf Objects
+
+<!-- Content: sf::st_as_sf(as.data.frame(arrow_tbl)) pattern.
+     Explain why this two-step process is needed. -->
+
+## Setting CRS
+
+<!-- Content: CRITICAL — DuckDB GeoParquet does not embed CRS metadata.
+     sf will show CRS as NA. Analysts MUST set CRS explicitly.
+     Most spatial tables use EPSG:27700 (British National Grid).
+     ca_boundaries_bgc_tbl uses EPSG:4326 (WGS84).
+     Show sf::st_set_crs() and how to check pin metadata for correct CRS. -->
+
+## Plotting a Quick Map
+
+<!-- Content: Simple plot(sf_obj["column"]) example.
+     Optional: ggplot2 + geom_sf for a nicer map.
+     Use bdline_ua_lep_tbl or similar recognisable boundary. -->
+
+# Troubleshooting
+
+<!-- Content: Dedicated troubleshooting section covering common issues.
+     - AWS credential errors (expired, wrong region, not configured)
+     - "file not found" when attaching DuckLake (need .ducklake file locally)
+     - sfarrow errors on GeoParquet (use arrow + sf instead)
+     - CRS shows as NA or OGC:CRS84 (must set explicitly)
+     - Python pin_read fails on EPC table (multi-file pin — use arrow fallback)
+     - DuckLake extension not available in R (use DuckDB CLI)
+     - s3fs version warning in Python (cosmetic, can ignore) -->
+
+# Support and Contact
+
+<!-- Content: Who to contact for data platform questions.
+     Slack channel: [#data-platform] (placeholder — fill before publishing).
+     Named contact: [Data Platform Team] (placeholder).
+     GitHub repo link for reporting issues. -->
+
+# Appendix A: Python Equivalents {.appendix}
+
+<!-- Content: Python versions of the key R examples above.
+     For analysts who prefer Python or need to integrate with Python workflows. -->
+
+## Pins Access
+
+<!-- Content: board_s3("stevecrawshaw-bucket/pins", versioned=True) — note the
+     different path format from R (bucket/prefix, no separate params).
+     board.pin_list(), board.pin_read(), board.pin_meta().
+     Note: pin_read fails on multi-file pins — use arrow fallback. -->
+
+## DuckLake Queries
+
+<!-- Content: Python DuckDB connection for SQL queries.
+     import duckdb; conn = duckdb.connect()
+     Same SQL as the R/CLI examples above.
+     INSTALL/LOAD ducklake, ATTACH, SELECT. -->
+
+## Spatial Data with geopandas
+
+<!-- Content: geopandas.read_parquet() for GeoParquet pins.
+     CRS may show as OGC:CRS84 — override with set_crs("EPSG:27700", allow_override=True).
+     Quick plot with gdf.plot(). -->
+
+# Appendix B: SQL Quick Reference {.appendix}
+
+<!-- Content: Brief SQL primer for analysts who know R but not SQL.
+     Cover: SELECT, FROM, WHERE, JOIN, GROUP BY, ORDER BY, LIMIT.
+     Use DuckLake table examples throughout.
+     Not a full SQL course — just enough to query the catalogue effectively. -->
