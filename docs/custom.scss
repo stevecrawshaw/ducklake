@@ -1,0 +1,126 @@
+// WECA branded SCSS theme for Quarto HTML output
+// Brand colours from WECA corporate identity
+
+/*-- scss:defaults --*/
+
+// WECA brand colours
+$weca-west-green: #40A832;
+$weca-forest-green: #1D4F2B;
+$weca-black: #1F1F1F;
+$weca-white: #FFFFFF;
+$weca-light-grey: #F5F5F5;
+$weca-border-grey: #E0E0E0;
+
+// Typography
+$font-family-sans-serif: "Trebuchet MS", "Open Sans", sans-serif;
+$headings-font-family: "Trebuchet MS", sans-serif;
+
+// Colour assignments
+$body-color: $weca-black;
+$link-color: $weca-west-green;
+$link-hover-color: $weca-forest-green;
+
+// Table of contents
+$toc-color: $weca-forest-green;
+$toc-active-border: $weca-west-green;
+
+/*-- scss:rules --*/
+
+// Title banner
+.quarto-title-banner {
+  background-color: $weca-forest-green;
+  color: $weca-white;
+}
+
+.quarto-title-banner .title {
+  color: $weca-white;
+}
+
+.quarto-title-banner .subtitle {
+  color: rgba($weca-white, 0.9);
+}
+
+// Headings
+h1, h2, h3, h4, h5, h6 {
+  color: $weca-forest-green;
+  font-family: $headings-font-family;
+  font-weight: bold;
+}
+
+// Links
+a {
+  color: $weca-west-green;
+  text-decoration: none;
+
+  &:hover {
+    color: $weca-forest-green;
+    text-decoration: underline;
+  }
+}
+
+// Callout styling
+.callout-tip {
+  border-left-color: $weca-west-green !important;
+}
+
+.callout-note {
+  border-left-color: $weca-forest-green !important;
+}
+
+// Code block styling
+div.sourceCode {
+  background-color: $weca-light-grey;
+  border: 1px solid $weca-border-grey;
+  border-radius: 4px;
+}
+
+pre.sourceCode {
+  background-color: $weca-light-grey;
+  padding: 0.75em 1em;
+}
+
+code {
+  color: $weca-forest-green;
+}
+
+// Inline code
+p code, li code {
+  background-color: $weca-light-grey;
+  padding: 0.15em 0.3em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+// Table styling
+.table {
+  border-color: $weca-border-grey;
+
+  thead {
+    background-color: $weca-forest-green;
+    color: $weca-white;
+  }
+
+  th {
+    border-bottom-color: $weca-forest-green;
+  }
+}
+
+// Responsive typography
+@media (max-width: 768px) {
+  body {
+    font-size: 0.95rem;
+  }
+
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.3rem; }
+  h3 { font-size: 1.1rem; }
+}
+
+// TOC sidebar styling
+.sidebar nav[role=doc-toc] a {
+  color: $weca-forest-green;
+
+  &:hover, &.active {
+    color: $weca-west-green;
+  }
+}
