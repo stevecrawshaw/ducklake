@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Table Export via Pins** - Export non-spatial tables to S3 with metadata, accessible from R and Python
 - [x] **Phase 3: DuckLake Catalogue** - Register all tables in a DuckLake catalogue with comments, time travel, and views
 - [x] **Phase 4: Spatial Data Handling** - Convert WKB_BLOB geometry columns for both pins and DuckLake consumers
-- [ ] **Phase 5: Refresh Pipeline and Data Catalogue** - Repeatable re-export, version management, and queryable table-of-tables
+- [x] **Phase 5: Refresh Pipeline and Data Catalogue** - Repeatable re-export, version management, and queryable table-of-tables
 - [ ] **Phase 6: Analyst Documentation** - Consumer guides for pins and DuckLake access patterns
 
 ## Phase Details
@@ -97,8 +97,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Unified refresh pipeline (re-export all 18 tables to DuckLake + pins with row count validation)
-- [ ] 05-02-PLAN.md -- Data catalogue generation (datasets_catalogue + columns_catalogue as DuckLake tables and S3 pins)
+- [x] 05-01-PLAN.md -- Unified refresh pipeline (re-export all 18 tables to DuckLake + pins with row count validation)
+- [x] 05-02-PLAN.md -- Data catalogue generation (datasets_catalogue + columns_catalogue as DuckLake tables and S3 pins)
 
 ### Phase 6: Analyst Documentation
 **Goal**: An analyst can go from zero to querying data independently, using only the provided documentation
@@ -111,8 +111,8 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 06-01: Pins access guide (R and Python)
-- [ ] 06-02: DuckLake access guide
+- [x] 06-01: Quarto infrastructure and analyst guide skeleton
+- [ ] 06-02: Content authoring for analyst guide
 
 ## Progress
 
@@ -126,9 +126,9 @@ Note: Phases 3 and 4 could potentially execute in parallel after Phase 2.
 | 2. Table Export via Pins | 3/3 | Complete | 2026-02-22 |
 | 3. DuckLake Catalogue | 3/3 | Complete | 2026-02-23 |
 | 4. Spatial Data Handling | 2/2 | Complete | 2026-02-23 |
-| 5. Refresh Pipeline and Data Catalogue | 0/2 | Not started | - |
-| 6. Analyst Documentation | 0/2 | Not started | - |
+| 5. Refresh Pipeline and Data Catalogue | 2/2 | Complete | 2026-02-24 |
+| 6. Analyst Documentation | 1/2 | In Progress | - |
 
 ---
 *Roadmap created: 2026-02-22*
-*Last updated: 2026-02-23 (Phase 4 complete)*
+*Last updated: 2026-02-25 (Phase 6 plan 01 complete)*

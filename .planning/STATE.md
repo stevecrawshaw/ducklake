@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Analysts can discover and access curated, well-documented datasets from a shared catalogue without needing to know where or how the data is stored.
-**Current focus:** Phase 5 complete -- ready for Phase 6 (Analyst Documentation)
+**Current focus:** Phase 6 in progress -- Plan 01 complete, Plan 02 pending
 
 ## Current Position
 
-Phase: 5 of 6 (Refresh Pipeline and Data Catalogue)
-Plan: 2 of 2 complete
-Status: Phase complete
-Last activity: 2026-02-24 -- Completed 05-02-PLAN.md (data catalogue)
+Phase: 6 of 6 (Analyst Documentation)
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-02-25 -- Completed 06-01-PLAN.md (Quarto infrastructure)
 
 Progress: [██████████████░] 92%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: ~15 minutes
-- Total execution time: ~160 minutes
+- Total plans completed: 12
+- Average duration: ~14 minutes
+- Total execution time: ~168 minutes
 
 **By Phase:**
 
@@ -32,10 +32,11 @@ Progress: [██████████████░] 92%
 | 03-ducklake-catalogue | 3 | ~43 min | ~14 min |
 | 04-spatial-data-handling | 2 | ~10 min | ~5 min |
 | 05-refresh-pipeline | 2 | ~77 min | ~39 min |
+| 06-analyst-documentation | 1 | ~8 min | ~8 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-03 (~5 min), 04-01 (~7 min), 04-02 (~3 min), 05-01 (~26 min), 05-02 (~51 min)
-- Trend: Catalogue plan slower due to full refresh + catalogue generation + bug fix iterations
+- Last 5 plans: 04-01 (~7 min), 04-02 (~3 min), 05-01 (~26 min), 05-02 (~51 min), 06-01 (~8 min)
+- Trend: Documentation plan fast -- infrastructure setup only, no data processing
 
 *Updated after each plan completion*
 
@@ -76,6 +77,7 @@ Recent decisions affecting current work:
 - [05-02]: ST_Extent_Agg for aggregate bounding boxes (ST_Extent is per-geometry, not aggregate)
 - [05-02]: Example values sampled via R DuckDB connection (not CLI) to avoid Windows encoding issues
 - [05-02]: GEOMETRY/BLOB columns get NULL examples; view descriptions generated from name patterns
+- [Phase 06]: Dual-format Quarto output: HTML (custom.scss) + PDF (weca-report-typst)
 
 ### Pending Todos
 
@@ -95,7 +97,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-24
-Stopped at: Completed 05-02-PLAN.md (data catalogue)
-Resume action: Plan Phase 6 (Analyst Documentation)
-Resume file: .planning/phases/05-refresh-pipeline-and-data-catalogue/05-02-SUMMARY.md
+Last session: 2026-02-25
+Stopped at: Completed 06-01-PLAN.md (Quarto infrastructure)
+Resume action: Execute 06-02-PLAN.md (content authoring)
+Resume file: .planning/phases/06-analyst-documentation/06-01-SUMMARY.md

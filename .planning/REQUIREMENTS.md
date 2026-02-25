@@ -35,8 +35,8 @@
 
 - [ ] **INFRA-01**: Read-only IAM policy created for analyst AWS users
 - [ ] **INFRA-02**: Documentation for analysts on how to configure AWS credentials
-- [ ] **INFRA-03**: Documentation for analysts on how to access data via pins (R and Python)
-- [ ] **INFRA-04**: Documentation for analysts on how to attach and query DuckLake
+- [x] **INFRA-03**: Documentation for analysts on how to access data via pins (R and Python)
+- [x] **INFRA-04**: Documentation for analysts on how to attach and query DuckLake
 
 ### Data Catalogue
 
@@ -93,8 +93,8 @@
 | LAKE-07 | Phase 3 | Complete |
 | INFRA-01 | Phase 1 | Complete |
 | INFRA-02 | Phase 1 | Complete |
-| INFRA-03 | Phase 6 | Pending |
-| INFRA-04 | Phase 6 | Pending |
+| INFRA-03 | Phase 6 | Complete |
+| INFRA-04 | Phase 6 | Complete |
 | CAT-01 | Phase 5 | Pending |
 | CAT-02 | Phase 5 | Pending |
 | CAT-03 | Phase 5 | Pending |
