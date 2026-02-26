@@ -2308,7 +2308,7 @@ vertical-align: -.125em;
 </div>
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
-<p>WECA’s shared data platform provides <strong>18 curated datasets</strong> covering local authority lookups, greenhouse gas emissions, energy performance certificates, broadband coverage, IMD deprivation, business counts, and spatial boundaries. All data is stored on Amazon S3 and accessible through two complementary routes:</p>
+<p>WECA’s shared data platform provides <strong>18 curated datasets</strong> covering local authority lookups, greenhouse gas emissions, energy performance certificates, deprivation indices, postcode centroids, tenure, and spatial boundaries. All data is stored on Amazon S3 and accessible through two complementary routes:</p>
 <ul>
 <li><strong>Pins (R or Python):</strong> Read datasets directly into data frames. Best for quick exploratory analysis, filtering, and visualisation.</li>
 <li><strong>DuckLake (SQL via DuckDB CLI):</strong> Query datasets with SQL, join across tables, use pre-built WECA-filtered views, and browse the data catalogue. Best for complex queries and when you need to work across multiple tables.</li>
@@ -2445,25 +2445,23 @@ Note
 <p><strong>R (pins):</strong></p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pins)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>board <span class="ot">&lt;-</span> <span class="fu">board_s3</span>(<span class="at">bucket =</span> <span class="st">&quot;stevecrawshaw-bucket&quot;</span>, <span class="at">region =</span> <span class="st">&quot;eu-west-2&quot;</span>)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">pin_list</span>(board)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>board <span class="ot">&lt;-</span> <span class="fu">board_s3</span>(<span class="at">bucket =</span> <span class="st">&quot;stevecrawshaw-bucket&quot;</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>                  <span class="at">prefix =</span> <span class="st">&quot;pins/&quot;</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>                   <span class="at">region =</span> <span class="st">&quot;eu-west-2&quot;</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">pin_list</span>(board)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<pre class="text"><code> [1] &quot;bdline_ua_lep_diss_tbl&quot;             &quot;bdline_ua_lep_tbl&quot;
- [3] &quot;bdline_ua_weca_diss_tbl&quot;            &quot;bdline_ward_lep_tbl&quot;
- [5] &quot;ca_boundaries_bgc_tbl&quot;              &quot;ca_la_lookup_tbl&quot;
- ...</code></pre>
 <p><strong>DuckDB CLI:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>INSTALL aws; LOAD aws;</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> SECRET (</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">TYPE</span> s3, PROVIDER credential_chain,</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    CHAIN config, REGION <span class="st">&#39;eu-west-2&#39;</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>);</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> glob(<span class="st">&#39;s3://stevecrawshaw-bucket/*&#39;</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>INSTALL aws; LOAD aws;</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> SECRET (</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">TYPE</span> s3, PROVIDER credential_chain,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    CHAIN config, REGION <span class="st">&#39;eu-west-2&#39;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>);</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> glob(<span class="st">&#39;s3://stevecrawshaw-bucket/*&#39;</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p><strong>AWS CLI (optional):</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> s3 ls s3://stevecrawshaw-bucket/</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> s3 ls s3://stevecrawshaw-bucket/</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -2527,40 +2525,40 @@ Note
 <td style="text-align: right;">70</td>
 </tr>
 <tr class="odd">
+<td><code>boundary_lookup_tbl</code></td>
+<td>Boundary lookup (LA/ward/LSOA codes)</td>
+<td style="text-align: center;">–</td>
+<td style="text-align: right;">700</td>
+</tr>
+<tr class="even">
 <td><code>ca_boundaries_bgc_tbl</code></td>
 <td>Combined authority boundaries (BGC)</td>
 <td style="text-align: center;">Yes</td>
 <td style="text-align: right;">11</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>ca_la_lookup_tbl</code></td>
 <td>Combined authority to local authority lookup</td>
 <td style="text-align: center;">–</td>
 <td style="text-align: right;">106</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>codepoint_open_lep_tbl</code></td>
 <td>Codepoint Open postcodes LEP</td>
 <td style="text-align: center;">Yes</td>
 <td style="text-align: right;">49,000</td>
 </tr>
-<tr class="even">
-<td><code>imd_2019_lsoa_lep_tbl</code></td>
-<td>IMD 2019 by LSOA (LEP area)</td>
-<td style="text-align: center;">–</td>
-<td style="text-align: right;">700</td>
-</tr>
 <tr class="odd">
-<td><code>la_broadband_coverage_tbl</code></td>
-<td>Local authority broadband coverage</td>
+<td><code>eng_lsoa_imd_tbl</code></td>
+<td>English LSOA Index of Multiple Deprivation</td>
 <td style="text-align: center;">–</td>
-<td style="text-align: right;">440</td>
+<td style="text-align: right;">33,000</td>
 </tr>
 <tr class="even">
-<td><code>la_business_counts_tbl</code></td>
-<td>Local authority business counts</td>
+<td><code>iod2025_tbl</code></td>
+<td>Index of Deprivation 2025</td>
 <td style="text-align: center;">–</td>
-<td style="text-align: right;">3,600</td>
+<td style="text-align: right;">33,000</td>
 </tr>
 <tr class="odd">
 <td><code>la_ghg_emissions_tbl</code></td>
@@ -2569,28 +2567,16 @@ Note
 <td style="text-align: right;">27,000</td>
 </tr>
 <tr class="even">
-<td><code>la_house_price_earnings_ratio_tbl</code></td>
-<td>House price to earnings ratio by LA</td>
+<td><code>la_ghg_emissions_wide_tbl</code></td>
+<td>LA GHG emissions (wide format)</td>
 <td style="text-align: center;">–</td>
-<td style="text-align: right;">2,100</td>
+<td style="text-align: right;">6,000</td>
 </tr>
 <tr class="odd">
-<td><code>la_imd_2019_summary_tbl</code></td>
-<td>IMD 2019 summary by local authority</td>
-<td style="text-align: center;">–</td>
-<td style="text-align: right;">800</td>
-</tr>
-<tr class="even">
 <td><code>lsoa_2021_lep_tbl</code></td>
 <td>LSOA 2021 boundaries (LEP area)</td>
 <td style="text-align: center;">Yes</td>
 <td style="text-align: right;">700</td>
-</tr>
-<tr class="odd">
-<td><code>oa_2021_lsoa_lep_lookup_tbl</code></td>
-<td>OA 2021 to LSOA LEP lookup</td>
-<td style="text-align: center;">–</td>
-<td style="text-align: right;">3,300</td>
 </tr>
 <tr class="even">
 <td><code>open_uprn_lep_tbl</code></td>
@@ -2599,23 +2585,35 @@ Note
 <td style="text-align: right;">700,000</td>
 </tr>
 <tr class="odd">
+<td><code>postcode_centroids_tbl</code></td>
+<td>Postcode centroids (all England)</td>
+<td style="text-align: center;">–</td>
+<td style="text-align: right;">1,800,000</td>
+</tr>
+<tr class="even">
 <td><code>raw_domestic_epc_certificates_tbl</code></td>
 <td>Domestic EPC certificates (raw)</td>
 <td style="text-align: center;">–</td>
 <td style="text-align: right;">19,000,000</td>
 </tr>
-<tr class="even">
-<td><code>uk_hpi_tbl</code></td>
-<td>UK House Price Index</td>
+<tr class="odd">
+<td><code>raw_non_domestic_epc_certificates_tbl</code></td>
+<td>Non-domestic EPC certificates (raw)</td>
 <td style="text-align: center;">–</td>
-<td style="text-align: right;">100,000</td>
+<td style="text-align: right;">900,000</td>
+</tr>
+<tr class="even">
+<td><code>uk_lsoa_tenure_tbl</code></td>
+<td>UK LSOA tenure (Census 2021)</td>
+<td style="text-align: center;">–</td>
+<td style="text-align: right;">35,000</td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="views-weca-filtered" class="level2">
 <h2 class="anchored" data-anchor-id="views-weca-filtered">Views (WECA-filtered)</h2>
-<p>The catalogue includes 12 views, most of which pre-filter data to the four WECA local authorities (Bath and North East Somerset, Bristol, North Somerset, South Gloucestershire). Views have names ending in <code>_weca_vw</code> or <code>_source_vw</code>.</p>
+<p>The catalogue includes 12 views. Four are source views that reshape or join data; the remaining eight pre-filter data to the four WECA local authorities (Bath and North East Somerset, Bristol, North Somerset, South Gloucestershire). Views have names ending in <code>_weca_vw</code>, <code>_vw</code>, or <code>_ods_vw</code>.</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 40%">
@@ -2629,20 +2627,52 @@ Note
 </thead>
 <tbody>
 <tr class="odd">
+<td><code>ca_la_lookup_inc_ns_vw</code></td>
+<td>CA/LA lookup including North Somerset</td>
+</tr>
+<tr class="even">
+<td><code>weca_lep_la_vw</code></td>
+<td>WECA LEP local authorities (4 rows)</td>
+</tr>
+<tr class="odd">
+<td><code>ca_la_ghg_emissions_sub_sector_ods_vw</code></td>
+<td>GHG emissions joined with CA/LA lookup</td>
+</tr>
+<tr class="even">
+<td><code>epc_domestic_vw</code></td>
+<td>Domestic EPC with derived fields (construction year, tenure)</td>
+</tr>
+<tr class="odd">
 <td><code>la_ghg_emissions_weca_vw</code></td>
 <td>GHG emissions filtered to WECA LAs</td>
 </tr>
 <tr class="even">
-<td><code>la_broadband_coverage_weca_vw</code></td>
-<td>Broadband coverage filtered to WECA LAs</td>
+<td><code>la_ghg_emissions_wide_weca_vw</code></td>
+<td>GHG emissions (wide) filtered to WECA LAs</td>
 </tr>
 <tr class="odd">
-<td><code>la_business_counts_weca_vw</code></td>
-<td>Business counts filtered to WECA LAs</td>
+<td><code>raw_domestic_epc_weca_vw</code></td>
+<td>Domestic EPC filtered to WECA LAs</td>
 </tr>
 <tr class="even">
-<td><code>weca_lep_la_vw</code></td>
-<td>WECA LEP local authority lookup (4 rows)</td>
+<td><code>raw_non_domestic_epc_weca_vw</code></td>
+<td>Non-domestic EPC filtered to WECA LAs</td>
+</tr>
+<tr class="odd">
+<td><code>boundary_lookup_weca_vw</code></td>
+<td>Boundary lookup filtered to WECA LAs</td>
+</tr>
+<tr class="even">
+<td><code>postcode_centroids_weca_vw</code></td>
+<td>Postcode centroids filtered to WECA LAs</td>
+</tr>
+<tr class="odd">
+<td><code>iod2025_weca_vw</code></td>
+<td>Index of Deprivation 2025 filtered to WECA LAs</td>
+</tr>
+<tr class="even">
+<td><code>ca_la_lookup_weca_vw</code></td>
+<td>CA/LA lookup filtered to WECA LAs</td>
 </tr>
 </tbody>
 </table>
@@ -2668,14 +2698,14 @@ Note
 <h2 class="anchored" data-anchor-id="creating-a-board">Creating a Board</h2>
 <p>Connect to the S3 board. You only need to do this once per session.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pins)</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>board <span class="ot">&lt;-</span> <span class="fu">board_s3</span>(</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">bucket =</span> <span class="st">&quot;stevecrawshaw-bucket&quot;</span>,</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">prefix =</span> <span class="st">&quot;pins/&quot;</span>,</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">region =</span> <span class="st">&quot;eu-west-2&quot;</span>,</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">versioned =</span> <span class="cn">TRUE</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pins)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>board <span class="ot">&lt;-</span> <span class="fu">board_s3</span>(</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">bucket =</span> <span class="st">&quot;stevecrawshaw-bucket&quot;</span>,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">prefix =</span> <span class="st">&quot;pins/&quot;</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">region =</span> <span class="st">&quot;eu-west-2&quot;</span>,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">versioned =</span> <span class="cn">TRUE</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The <code>versioned = TRUE</code> parameter means you can access previous versions of datasets if needed.</p>
 </section>
@@ -2683,88 +2713,110 @@ Note
 <h2 class="anchored" data-anchor-id="listing-datasets">Listing Datasets</h2>
 <p>See all available datasets on the board:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pin_list</span>(board)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pin_list</span>(board)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] &quot;bdline_ua_lep_diss_tbl&quot;               
+ [2] &quot;bdline_ua_lep_tbl&quot;                    
+ [3] &quot;bdline_ua_weca_diss_tbl&quot;              
+ [4] &quot;bdline_ward_lep_tbl&quot;                  
+ [5] &quot;boundary_lookup_tbl&quot;                  
+ [6] &quot;ca_boundaries_bgc_tbl&quot;                
+ [7] &quot;ca_la_lookup_tbl&quot;                     
+ [8] &quot;codepoint_open_lep_tbl&quot;               
+ [9] &quot;columns_catalogue&quot;                    
+[10] &quot;datasets_catalogue&quot;                   
+[11] &quot;eng_lsoa_imd_tbl&quot;                     
+[12] &quot;iod2025_tbl&quot;                          
+[13] &quot;la_ghg_emissions_tbl&quot;                 
+[14] &quot;la_ghg_emissions_wide_tbl&quot;            
+[15] &quot;lsoa_2021_lep_tbl&quot;                    
+[16] &quot;open_uprn_lep_tbl&quot;                    
+[17] &quot;postcode_centroids_tbl&quot;               
+[18] &quot;raw_domestic_epc_certificates_tbl&quot;    
+[19] &quot;raw_non_domestic_epc_certificates_tbl&quot;
+[20] &quot;uk_lsoa_tenure_tbl&quot;                   </code></pre>
 </div>
-<pre class="text"><code> [1] &quot;bdline_ua_lep_diss_tbl&quot;             &quot;bdline_ua_lep_tbl&quot;
- [3] &quot;bdline_ua_weca_diss_tbl&quot;            &quot;bdline_ward_lep_tbl&quot;
- [5] &quot;ca_boundaries_bgc_tbl&quot;              &quot;ca_la_lookup_tbl&quot;
- [7] &quot;codepoint_open_lep_tbl&quot;             &quot;columns_catalogue&quot;
- [9] &quot;datasets_catalogue&quot;                 &quot;imd_2019_lsoa_lep_tbl&quot;
-[11] &quot;la_broadband_coverage_tbl&quot;          &quot;la_business_counts_tbl&quot;
-[13] &quot;la_ghg_emissions_tbl&quot;               &quot;la_house_price_earnings_ratio_tbl&quot;
-[15] &quot;la_imd_2019_summary_tbl&quot;            &quot;lsoa_2021_lep_tbl&quot;
-[17] &quot;oa_2021_lsoa_lep_lookup_tbl&quot;        &quot;open_uprn_lep_tbl&quot;
-[19] &quot;raw_domestic_epc_certificates_tbl&quot;  &quot;uk_hpi_tbl&quot;</code></pre>
+</div>
 </section>
 <section id="reading-a-dataset" class="level2">
 <h2 class="anchored" data-anchor-id="reading-a-dataset">Reading a Dataset</h2>
 <p>Read a dataset directly into an R data frame with <code>pin_read()</code>. Start with <code>ca_la_lookup_tbl</code> – it is small (106 rows) and loads instantly.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">pin_read</span>(board, <span class="st">&quot;ca_la_lookup_tbl&quot;</span>)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">pin_read</span>(board, <span class="st">&quot;ca_la_lookup_tbl&quot;</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A data frame: 6 × 5
+  LAD25CD   LAD25NM    CAUTH25CD CAUTH25NM          ObjectId
+* &lt;chr&gt;     &lt;chr&gt;      &lt;chr&gt;     &lt;chr&gt;                 &lt;dbl&gt;
+1 E08000001 Bolton     E47000001 Greater Manchester        1
+2 E08000002 Bury       E47000001 Greater Manchester        2
+3 E08000003 Manchester E47000001 Greater Manchester        3
+4 E08000004 Oldham     E47000001 Greater Manchester        4
+5 E08000005 Rochdale   E47000001 Greater Manchester        5
+6 E08000006 Salford    E47000001 Greater Manchester        6</code></pre>
 </div>
-<pre class="text"><code>  LAD25CD              LAD25NM  CAUTH25CD                CAUTH25NM population
-1 E06000022 Bath and North ...  E47000009 West of England         197...
-2 E06000023           Bristol   E47000009 West of England         472...
-3 E06000024      North Somerset E47000009 West of England         217...
-4 E06000025  South Gloucest...  E47000009 West of England         285...
-5 E08000025        Birmingham   E47000007 West Midlands          1144...
-6 E08000026            Coventry E47000007 West Midlands           345...</code></pre>
+</div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Classes &#39;tbl&#39; and &#39;data.frame&#39;: 106 obs. of  5 variables:
+ $ LAD25CD  : chr  &quot;E08000001&quot; &quot;E08000002&quot; &quot;E08000003&quot; &quot;E08000004&quot; ...
+ $ LAD25NM  : chr  &quot;Bolton&quot; &quot;Bury&quot; &quot;Manchester&quot; &quot;Oldham&quot; ...
+ $ CAUTH25CD: chr  &quot;E47000001&quot; &quot;E47000001&quot; &quot;E47000001&quot; &quot;E47000001&quot; ...
+ $ CAUTH25NM: chr  &quot;Greater Manchester&quot; &quot;Greater Manchester&quot; &quot;Greater Manchester&quot; &quot;Greater Manchester&quot; ...
+ $ ObjectId : num  1 2 3 4 5 6 7 8 9 10 ...</code></pre>
 </div>
-<pre class="text"><code>&#39;data.frame&#39;:   106 obs. of  5 variables:
- $ LAD25CD   : chr  &quot;E06000022&quot; &quot;E06000023&quot; &quot;E06000024&quot; ...
- $ LAD25NM   : chr  &quot;Bath and North East Somerset&quot; &quot;Bristol, City of&quot; ...
- $ CAUTH25CD : chr  &quot;E47000009&quot; &quot;E47000009&quot; &quot;E47000009&quot; ...
- $ CAUTH25NM : chr  &quot;West of England&quot; &quot;West of England&quot; ...
- $ population: num  197... 472... 217... 285... 1144... ...</code></pre>
+</div>
 </section>
 <section id="accessing-metadata" class="level2">
 <h2 class="anchored" data-anchor-id="accessing-metadata">Accessing Metadata</h2>
 <p>Every dataset carries metadata including a description and column-level documentation:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>meta <span class="ot">&lt;-</span> <span class="fu">pin_meta</span>(board, <span class="st">&quot;ca_la_lookup_tbl&quot;</span>)</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>meta<span class="sc">$</span>title</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>meta <span class="ot">&lt;-</span> <span class="fu">pin_meta</span>(board, <span class="st">&quot;ca_la_lookup_tbl&quot;</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>meta<span class="sc">$</span>title</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] &quot;Combined authority local authority boundaries&quot;</code></pre>
 </div>
-<pre class="text"><code>[1] &quot;Combined authority to local authority lookup&quot;</code></pre>
+</div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>meta<span class="sc">$</span>user<span class="sc">$</span>columns</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<pre class="text"><code>$LAD25CD
-[1] &quot;2025 Local Authority District code&quot;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>meta<span class="sc">$</span>user<span class="sc">$</span>columns</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$LAD25CD
+[1] &quot;Local authority district code 2025&quot;
 
 $LAD25NM
-[1] &quot;2025 Local Authority District name&quot;
+[1] &quot;Local authority district name 2025&quot;
 
 $CAUTH25CD
-[1] &quot;2025 Combined Authority code&quot;
+[1] &quot;Combined authority code 2025&quot;
 
 $CAUTH25NM
-[1] &quot;2025 Combined Authority name&quot;
+[1] &quot;Combined authority name 2025&quot;
 
-$population
-[1] &quot;Mid-year population estimate&quot;</code></pre>
+$ObjectId
+[1] &quot;Objectid&quot;</code></pre>
+</div>
+</div>
 <p>Column descriptions come from the data catalogue and are embedded in each pin’s metadata. Use <code>meta$user$column_types</code> to see the data types.</p>
 </section>
 <section id="large-datasets" class="level2">
 <h2 class="anchored" data-anchor-id="large-datasets">Large Datasets</h2>
 <p>The <code>raw_domestic_epc_certificates_tbl</code> dataset contains approximately 19 million rows and is stored as a multi-file pin (multiple parquet files). For this table, <code>pin_read()</code> may be slow or fail. Use <code>arrow::open_dataset()</code> instead:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(arrow)</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Download the parquet files</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>paths <span class="ot">&lt;-</span> <span class="fu">pin_download</span>(board, <span class="st">&quot;raw_domestic_epc_certificates_tbl&quot;</span>)</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Open as an Arrow dataset (lazy -- does not load into memory)</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>ds <span class="ot">&lt;-</span> <span class="fu">open_dataset</span>(paths)</span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Query efficiently with dplyr</span></span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>bristol_epcs <span class="ot">&lt;-</span> ds <span class="sc">|&gt;</span></span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(local_authority <span class="sc">==</span> <span class="st">&quot;Bristol, City of&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(address1, current_energy_rating, potential_energy_rating) <span class="sc">|&gt;</span></span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">collect</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(arrow)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Download the parquet files</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>paths <span class="ot">&lt;-</span> <span class="fu">pin_download</span>(board, <span class="st">&quot;raw_domestic_epc_certificates_tbl&quot;</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Open as an Arrow dataset (lazy -- does not load into memory)</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>ds <span class="ot">&lt;-</span> <span class="fu">open_dataset</span>(paths)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Query efficiently with dplyr</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>bristol_epcs <span class="ot">&lt;-</span> ds <span class="sc">|&gt;</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(local_authority <span class="sc">==</span> <span class="st">&quot;Bristol, City of&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(address1, current_energy_rating, potential_energy_rating) <span class="sc">|&gt;</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">collect</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -2788,31 +2840,31 @@ Tip
 <h2 class="anchored" data-anchor-id="installing-extensions">Installing Extensions</h2>
 <p>Open the DuckDB CLI and install the required extensions. This only needs to be done once – extensions are cached locally.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>INSTALL ducklake;</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>LOAD ducklake;</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>INSTALL httpfs;</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>LOAD httpfs;</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>INSTALL aws;</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>LOAD aws;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>INSTALL ducklake;</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>LOAD ducklake;</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>INSTALL httpfs;</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>LOAD httpfs;</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>INSTALL aws;</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>LOAD aws;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>For spatial queries, also install:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>INSTALL spatial;</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>LOAD spatial;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>INSTALL spatial;</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>LOAD spatial;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="attaching-the-catalogue" class="level2">
 <h2 class="anchored" data-anchor-id="attaching-the-catalogue">Attaching the Catalogue</h2>
 <p>Each time you open a DuckDB CLI session, you need to create an S3 credential and attach the catalogue.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Create S3 credential (uses your ~/.aws/credentials file)</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> SECRET (<span class="kw">TYPE</span> s3, REGION <span class="st">&#39;eu-west-2&#39;</span>, PROVIDER credential_chain);</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- Attach the DuckLake catalogue</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>ATTACH <span class="st">&#39;ducklake:data/mca_env.ducklake&#39;</span> <span class="kw">AS</span> lake</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  (READ_ONLY, DATA_PATH <span class="st">&#39;s3://stevecrawshaw-bucket/ducklake/data/&#39;</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Create S3 credential (uses your ~/.aws/credentials file)</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> SECRET (<span class="kw">TYPE</span> s3, REGION <span class="st">&#39;eu-west-2&#39;</span>, PROVIDER credential_chain);</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- Attach the DuckLake catalogue</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>ATTACH <span class="st">&#39;ducklake:data/mca_env.ducklake&#39;</span> <span class="kw">AS</span> lake</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>  (READ_ONLY, DATA_PATH <span class="st">&#39;s3://stevecrawshaw-bucket/ducklake/data/&#39;</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -2825,220 +2877,102 @@ Tip
 </div>
 <div class="callout-body-container callout-body">
 <p>The file <code>data/mca_env.ducklake</code> is a small metadata file that must be on your local machine. Clone the repository to get it:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="op">&lt;</span>repo-url<span class="op">&gt;</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ducklake</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="op">&lt;</span>repo-url<span class="op">&gt;</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ducklake</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The <code>.ducklake</code> file is only metadata (a few KB). The actual data lives on S3 and is fetched transparently when you run queries.</p>
 </div>
 </div>
 <p>To see all available tables and views:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">USE</span> lake;</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>SHOW <span class="kw">TABLES</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">USE</span> lake;</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>SHOW <span class="kw">TABLES</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>name</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>bdline_ua_lep_diss_tbl</td>
-</tr>
-<tr class="even">
-<td>bdline_ua_lep_tbl</td>
-</tr>
-<tr class="odd">
-<td>…</td>
-</tr>
-<tr class="even">
-<td>la_ghg_emissions_weca_vw</td>
-</tr>
-<tr class="odd">
-<td>weca_lep_la_vw</td>
-</tr>
-<tr class="even">
-<td>datasets_catalogue</td>
-</tr>
-<tr class="odd">
-<td>columns_catalogue</td>
-</tr>
-</tbody>
-</table>
 </section>
 <section id="basic-sql-queries" class="level2">
 <h2 class="anchored" data-anchor-id="basic-sql-queries">Basic SQL Queries</h2>
 <p><strong>Select all rows from a small table:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> lake.ca_la_lookup_tbl <span class="kw">LIMIT</span> <span class="dv">5</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> lake.ca_la_lookup_tbl <span class="kw">LIMIT</span> <span class="dv">5</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p><strong>Filter with WHERE:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> LAD25NM, population</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.ca_la_lookup_tbl</span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> CAUTH25NM <span class="op">=</span> <span class="st">&#39;West of England&#39;</span></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> population <span class="kw">DESC</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> LAD25NM, population</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.ca_la_lookup_tbl</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> CAUTH25NM <span class="op">=</span> <span class="st">&#39;West of England&#39;</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> population <span class="kw">DESC</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>LAD25NM</th>
-<th style="text-align: right;">population</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Bristol, City of</td>
-<td style="text-align: right;">472000</td>
-</tr>
-<tr class="even">
-<td>South Gloucestershire</td>
-<td style="text-align: right;">285000</td>
-</tr>
-<tr class="odd">
-<td>North Somerset</td>
-<td style="text-align: right;">217000</td>
-</tr>
-<tr class="even">
-<td>Bath and North East Somerset</td>
-<td style="text-align: right;">197000</td>
-</tr>
-</tbody>
-</table>
 <p><strong>Aggregate with GROUP BY:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> territorial_emissions_sector,</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fu">SUM</span>(territorial_emissions_kt_co2e), <span class="dv">1</span>) <span class="kw">AS</span> total_kt</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.la_ghg_emissions_tbl</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> local_authority_name <span class="kw">IN</span> (<span class="st">&#39;Bristol, City of&#39;</span>, <span class="st">&#39;Bath and North East Somerset&#39;</span>,</span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>                                <span class="st">&#39;North Somerset&#39;</span>, <span class="st">&#39;South Gloucestershire&#39;</span>)</span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> <span class="dt">year</span> <span class="op">=</span> <span class="dv">2021</span></span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> territorial_emissions_sector</span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> total_kt <span class="kw">DESC</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> territorial_emissions_sector,</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fu">SUM</span>(territorial_emissions_kt_co2e), <span class="dv">1</span>) <span class="kw">AS</span> total_kt</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.la_ghg_emissions_tbl</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> local_authority_name <span class="kw">IN</span> (<span class="st">&#39;Bristol, City of&#39;</span>, <span class="st">&#39;Bath and North East Somerset&#39;</span>,</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>                                <span class="st">&#39;North Somerset&#39;</span>, <span class="st">&#39;South Gloucestershire&#39;</span>)</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> <span class="dt">year</span> <span class="op">=</span> <span class="dv">2021</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> territorial_emissions_sector</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> total_kt <span class="kw">DESC</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p><strong>Join tables:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> l.LAD25NM, g.<span class="dt">year</span>,</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fu">SUM</span>(g.territorial_emissions_kt_co2e), <span class="dv">1</span>) <span class="kw">AS</span> total_emissions</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.la_ghg_emissions_tbl g</span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> lake.ca_la_lookup_tbl l <span class="kw">ON</span> g.local_authority_code <span class="op">=</span> l.LAD25CD</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> l.CAUTH25NM <span class="op">=</span> <span class="st">&#39;West of England&#39;</span></span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> l.LAD25NM, g.<span class="dt">year</span></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> g.<span class="dt">year</span> <span class="kw">DESC</span>, total_emissions <span class="kw">DESC</span></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">8</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> l.LAD25NM, g.<span class="dt">year</span>,</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fu">SUM</span>(g.territorial_emissions_kt_co2e), <span class="dv">1</span>) <span class="kw">AS</span> total_emissions</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.la_ghg_emissions_tbl g</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> lake.ca_la_lookup_tbl l <span class="kw">ON</span> g.local_authority_code <span class="op">=</span> l.LAD25CD</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> l.CAUTH25NM <span class="op">=</span> <span class="st">&#39;West of England&#39;</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> l.LAD25NM, g.<span class="dt">year</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> g.<span class="dt">year</span> <span class="kw">DESC</span>, total_emissions <span class="kw">DESC</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">8</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="using-views" class="level2">
 <h2 class="anchored" data-anchor-id="using-views">Using Views</h2>
 <p>WECA-filtered views pre-filter data to the four WECA local authorities, saving you from writing the same WHERE clause repeatedly.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Instead of filtering manually:</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> lake.la_ghg_emissions_tbl</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> local_authority_code <span class="kw">IN</span> (<span class="st">&#39;E06000022&#39;</span>,<span class="st">&#39;E06000023&#39;</span>,<span class="st">&#39;E06000024&#39;</span>,<span class="st">&#39;E06000025&#39;</span>);</span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- Use the WECA view directly:</span></span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> lake.la_ghg_emissions_weca_vw;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Instead of filtering manually:</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> lake.la_ghg_emissions_tbl</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> local_authority_code <span class="kw">IN</span> (<span class="st">&#39;E06000022&#39;</span>,<span class="st">&#39;E06000023&#39;</span>,<span class="st">&#39;E06000024&#39;</span>,<span class="st">&#39;E06000025&#39;</span>);</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- Use the WECA view directly:</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> lake.la_ghg_emissions_weca_vw;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- List distinct authorities in a WECA view</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> local_authority_code, local_authority_name</span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.la_ghg_emissions_weca_vw;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- List distinct authorities in a WECA view</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> local_authority_code, local_authority_name</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.la_ghg_emissions_weca_vw;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>local_authority_code</th>
-<th>local_authority_name</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>E06000022</td>
-<td>Bath and North East Somerset</td>
-</tr>
-<tr class="even">
-<td>E06000023</td>
-<td>Bristol, City of</td>
-</tr>
-<tr class="odd">
-<td>E06000024</td>
-<td>North Somerset</td>
-</tr>
-<tr class="even">
-<td>E06000025</td>
-<td>South Gloucestershire</td>
-</tr>
-</tbody>
-</table>
 </section>
 <section id="querying-the-data-catalogue" class="level2">
 <h2 class="anchored" data-anchor-id="querying-the-data-catalogue">Querying the Data Catalogue</h2>
 <p>The catalogue includes two metadata tables that describe every dataset and column programmatically.</p>
 <p><strong>List all datasets with descriptions and row counts:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> name, description, <span class="kw">type</span>, row_count</span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.datasets_catalogue</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> <span class="kw">type</span>, name;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> name, description, <span class="kw">type</span>, row_count</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.datasets_catalogue</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> <span class="kw">type</span>, name;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>name</th>
-<th>description</th>
-<th>type</th>
-<th style="text-align: right;">row_count</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>bdline_ua_lep_diss_tbl</td>
-<td>Boundary line UA LEP dissolved</td>
-<td>table</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="even">
-<td>ca_la_lookup_tbl</td>
-<td>Combined authority to local …</td>
-<td>table</td>
-<td style="text-align: right;">106</td>
-</tr>
-<tr class="odd">
-<td>…</td>
-<td>…</td>
-<td>…</td>
-<td style="text-align: right;">…</td>
-</tr>
-<tr class="even">
-<td>la_ghg_emissions_weca_vw</td>
-<td>WECA-filtered subset of …</td>
-<td>view</td>
-<td style="text-align: right;">…</td>
-</tr>
-</tbody>
-</table>
 <p><strong>Explore columns for a specific table:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> column_name, data_type, description, example_1</span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.columns_catalogue</span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> table_name <span class="op">=</span> <span class="st">&#39;la_ghg_emissions_tbl&#39;</span></span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> column_name;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> column_name, data_type, description, example_1</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.columns_catalogue</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> table_name <span class="op">=</span> <span class="st">&#39;la_ghg_emissions_tbl&#39;</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> column_name;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p><strong>Find spatial datasets:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> name, geometry_type, crs, row_count</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.datasets_catalogue</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> geometry_type <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> name, geometry_type, crs, row_count</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.datasets_catalogue</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> geometry_type <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="time-travel" class="level2">
 <h2 class="anchored" data-anchor-id="time-travel">Time Travel</h2>
 <p>DuckLake keeps snapshots of your data. You can query a table as it existed at a previous version:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Query the table at version 1</span></span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> lake.ca_la_lookup_tbl <span class="kw">AT</span> (VERSION <span class="op">=&gt;</span> <span class="dv">1</span>);</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- List available snapshots</span></span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> lake.snapshots() <span class="kw">ORDER</span> <span class="kw">BY</span> snapshot_id <span class="kw">DESC</span> <span class="kw">LIMIT</span> <span class="dv">5</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Query the table at version 1</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> lake.ca_la_lookup_tbl <span class="kw">AT</span> (VERSION <span class="op">=&gt;</span> <span class="dv">1</span>);</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- List available snapshots</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> lake.snapshots() <span class="kw">ORDER</span> <span class="kw">BY</span> snapshot_id <span class="kw">DESC</span> <span class="kw">LIMIT</span> <span class="dv">5</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Snapshots are retained for 90 days and then automatically cleaned up. Time travel is useful for auditing changes or recovering from accidental modifications.</p>
 </section>
@@ -3063,50 +2997,41 @@ Tip
 <h2 class="anchored" data-anchor-id="reading-geoparquet-pins">Reading GeoParquet Pins</h2>
 <p>Spatial pins must be read with <code>pin_download()</code> followed by <code>arrow::read_parquet()</code>, not with <code>pin_read()</code>:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pins)</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(arrow)</span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>board <span class="ot">&lt;-</span> <span class="fu">board_s3</span>(</span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">bucket =</span> <span class="st">&quot;stevecrawshaw-bucket&quot;</span>,</span>
-<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">prefix =</span> <span class="st">&quot;pins/&quot;</span>,</span>
-<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">region =</span> <span class="st">&quot;eu-west-2&quot;</span>,</span>
-<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">versioned =</span> <span class="cn">TRUE</span></span>
-<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Download the GeoParquet file</span></span>
-<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>pin_path <span class="ot">&lt;-</span> <span class="fu">pin_download</span>(board, <span class="st">&quot;bdline_ua_lep_tbl&quot;</span>)</span>
-<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Read with arrow</span></span>
-<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>arrow_tbl <span class="ot">&lt;-</span> arrow<span class="sc">::</span><span class="fu">read_parquet</span>(pin_path, <span class="at">as_data_frame =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Download the GeoParquet file</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>pin_path <span class="ot">&lt;-</span> <span class="fu">pin_download</span>(board, <span class="st">&quot;bdline_ua_lep_tbl&quot;</span>)</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Read with arrow</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>arrow_tbl <span class="ot">&lt;-</span> arrow<span class="sc">::</span><span class="fu">read_parquet</span>(pin_path, <span class="at">as_data_frame =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="converting-to-sf-objects" class="level2">
 <h2 class="anchored" data-anchor-id="converting-to-sf-objects">Converting to sf Objects</h2>
 <p>Convert the Arrow table to an <code>sf</code> object in two steps:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>sf_obj <span class="ot">&lt;-</span> sf<span class="sc">::</span><span class="fu">st_as_sf</span>(<span class="fu">as.data.frame</span>(arrow_tbl))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>sf_obj <span class="ot">&lt;-</span> sf<span class="sc">::</span><span class="fu">st_as_sf</span>(<span class="fu">as.data.frame</span>(arrow_tbl))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The two-step process (<code>as.data.frame()</code> then <code>st_as_sf()</code>) is needed because <code>sf</code> expects a data frame with a geometry column, and Arrow tables need explicit conversion.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>sf_obj</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<pre class="text"><code>Simple feature collection with 5 features and 2 fields
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>sf_obj</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 4 features and 3 fields
 Geometry type: MULTIPOLYGON
 Dimension:     XY
-Bounding box:  xmin: 333099 ymin: 155782.9 xmax: 389539.2 ymax: 199597.7
+Bounding box:  xmin: 322292.8 ymin: 152770 xmax: 382605.5 ymax: 198319.9
 CRS:           NA
-  name         area_ha                       shape
-1 Bath and ... 35089.1 MULTIPOLYGON (((368338.4 ...
-2 Bristol, ... 11001.7 MULTIPOLYGON (((357291.7 ...
-...</code></pre>
+                          name      code id                          shape
+1 Bath and North East Somerset E06000022  1 MULTIPOLYGON (((376262.8 17...
+2              City of Bristol E06000023  2 MULTIPOLYGON (((353416.3 18...
+3        South Gloucestershire E06000025  3 MULTIPOLYGON (((364881.8 19...
+4               North Somerset E06000024  4 MULTIPOLYGON (((349585 1781...</code></pre>
+</div>
+</div>
 </section>
 <section id="setting-crs" class="level2">
 <h2 class="anchored" data-anchor-id="setting-crs">Setting CRS</h2>
 <p>Notice that the CRS shows as <strong>NA</strong> above. DuckDB does not embed CRS metadata into GeoParquet files, so you <strong>must</strong> set it explicitly after reading.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>sf_obj <span class="ot">&lt;-</span> sf<span class="sc">::</span><span class="fu">st_set_crs</span>(sf_obj, <span class="dv">27700</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>sf_obj <span class="ot">&lt;-</span> sf<span class="sc">::</span><span class="fu">st_set_crs</span>(sf_obj, <span class="dv">27700</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Most spatial tables use <strong>EPSG:27700</strong> (British National Grid). The one exception is <code>ca_boundaries_bgc_tbl</code>, which uses <strong>EPSG:4326</strong> (WGS84 latitude/longitude).</p>
 <table class="caption-top table">
@@ -3157,27 +3082,41 @@ CRS:           NA
 </table>
 <p>You can also check the correct CRS from the pin metadata:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>meta <span class="ot">&lt;-</span> <span class="fu">pin_meta</span>(board, <span class="st">&quot;bdline_ua_lep_tbl&quot;</span>)</span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>meta<span class="sc">$</span>user<span class="sc">$</span>crs</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>meta <span class="ot">&lt;-</span> <span class="fu">pin_meta</span>(board, <span class="st">&quot;bdline_ua_lep_tbl&quot;</span>)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>meta<span class="sc">$</span>user<span class="sc">$</span>crs</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] &quot;EPSG:27700&quot;</code></pre>
 </div>
-<pre class="text"><code>[1] &quot;EPSG:27700&quot;</code></pre>
+</div>
 </section>
 <section id="plotting-a-quick-map" class="level2">
 <h2 class="anchored" data-anchor-id="plotting-a-quick-map">Plotting a Quick Map</h2>
 <p>Once the CRS is set, you can plot directly:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(sf_obj[<span class="st">&quot;name&quot;</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(sf_obj[<span class="st">&quot;name&quot;</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABUAAAAPACAMAAADDuCPrAAAA0lBMVEUAAAAAADoAAGYAOjoAOmYAOpAAZmYAZrY6AAA6OgA6Ojo6OmY6ZmY6ZpA6ZrY6kJA6kNtmAABmOgBmOjpmZpBmkLZmkNtmtrZmtttmtv9mwqWNoMuQOgCQZgCQZjqQZmaQkGaQkLaQtraQttuQ29uQ2/+2ZgC2Zjq2kDq2kGa2kJC2tpC2ttu225C229u22/+2///bkDrbkGbbtmbbtpDbtrbb25Db27bb29vb2//b/7bb/9vb///nisP8jWL/tmb/25D/27b/29v//7b//9v///9+NtTGAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAgAElEQVR4nO3dbWPbxpmoYSi2j5U48Spx0xPHXm9bN3S93RNHtfe46SqW7Yj//y8tXgbAYDAgwYczeAaD+/rQWhIJgNTwzuCFVLEHAIgU2hsAAGtFQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQE93W5Su9vv3Ly6L4uKbN/1PPr/+qvrZxaPvb8x3dtWXP+3v6h88ell/792T8t9fdTep1Isqv/frYg8CwPkI6OmagH76rjCu2h/847L9VnHxx+ZbTUC7Hzy42Xf3K7tqfHre3e/xzWh1AFJFQE9XB/TrPpZtQa8LW/PNOqBf9d998P/7+33xS3O/j9aiqsQCWAkCerrbwtGUcNDB9ps797bjxv7+7eCbDxUfGYCTENDTmYDef7nfv2ui+bT6dt3K+2/2Zie92UM3AX386/7ub6aQ93/e799e9rPN+iYXP9zs7171CwOwAgT0dLfWvvZt17x6ItlUs5mL9lW1dufb+113k1Trfs13mYICa0FAT3drTRSb/e86kHf//R9fPbS+2QfUHOy8tu53233/1opmfcf20CiA1BHQ0932e+j7u+f9DLPjBtScGLq2YlpPUutl7KwF1Evrz84DSBsBPd2tFcJxQO/e/+lL58Dow/H9uoDe9ZcwtTgICqwEAT2dHcLBBHL/6fWTy2EHRwE1s9FDAXXmswBSRUBPZ4fQDujb4XVMBBTIHQE93URAm4uQiq/+8F//+vbUgNJMYI0I6On8AW1OLdXvdndPIh0K6PAYAIA1IaCn8wfUCuFJAb22lwZgTQjo6bwBtXfFrQs+jwe0ueq+uePtxdff/0xLgbUgoKc7ENCLH/b7z69OOYnUvkHp8c3+7h+X9pIBpI6Ans6/Cz/8LKZ2UjkjoM6HkHAZKLAaBPR0/oDaH6r01WWbzRkB3d8OCsr5JGA1COjpJi5j+th9UvIP/Xva5wS0/4zl5hgAgJUgoKebupD+7m31ycn3qr/VMTw3fyyg1Z/0qN7+efHoJcc/gRUhoAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECCgACBFQABAioAAgREABQIiAAoAQAQUAIQIKAEIEFACECChyUMyi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ACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAKTUKBgAAAMVJREFUQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgBABBQAhAgoAQgQUAIQIKAAIEVAAECKgACBEQAFAiIACgND/AkIuMrCXIr8EAAAAAElFTkSuQmCC" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
 </div>
 <p>For a more polished map using ggplot2:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(sf_obj) <span class="sc">+</span></span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> name), <span class="at">colour =</span> <span class="st">&quot;white&quot;</span>) <span class="sc">+</span></span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;WECA LEP Local Authorities&quot;</span>,</span>
-<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">fill =</span> <span class="st">&quot;Authority&quot;</span>) <span class="sc">+</span></span>
-<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(sf_obj) <span class="sc">+</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> name), <span class="at">colour =</span> <span class="st">&quot;white&quot;</span>) <span class="sc">+</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;WECA LEP Local Authorities&quot;</span>,</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">fill =</span> <span class="st">&quot;Authority&quot;</span>) <span class="sc">+</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img role="img" src="data:image/png;base64,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" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
 </div>
 </section>
 </section>
@@ -3199,9 +3138,9 @@ CRS:           NA
 <p><strong>Symptom:</strong> <code>ATTACH &#39;ducklake:data/mca_env.ducklake&#39;</code> fails with a file-not-found error.</p>
 <p><strong>Cause:</strong> The <code>.ducklake</code> catalogue file must be on your local machine. It is not hosted on S3.</p>
 <p><strong>Fix:</strong> Clone the repository and run DuckDB from the project root directory:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb46"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="op">&lt;</span>repo-url<span class="op">&gt;</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ducklake</span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="ex">duckdb</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb45"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="op">&lt;</span>repo-url<span class="op">&gt;</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ducklake</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="ex">duckdb</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="crs-shows-as-na-or-ogccrs84" class="level2">
 <h2 class="anchored" data-anchor-id="crs-shows-as-na-or-ogccrs84">CRS shows as NA or OGC:CRS84</h2>
@@ -3226,10 +3165,10 @@ CRS:           NA
 <p><strong>Symptom:</strong> <code>board.pin_read(&quot;raw_domestic_epc_certificates_tbl&quot;)</code> throws an error in Python.</p>
 <p><strong>Cause:</strong> The EPC table is a multi-file pin (exported in chunks). The Python <code>pins</code> library cannot handle multi-file pins with <code>pin_read</code>.</p>
 <p><strong>Fix:</strong> Use <code>pyarrow</code> directly:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyarrow.dataset <span class="im">as</span> ds</span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>paths <span class="op">=</span> board.pin_download(<span class="st">&quot;raw_domestic_epc_certificates_tbl&quot;</span>)</span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>dataset <span class="op">=</span> ds.dataset(paths, <span class="bu">format</span><span class="op">=</span><span class="st">&quot;parquet&quot;</span>)</span>
-<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> dataset.to_table().to_pandas()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyarrow.dataset <span class="im">as</span> ds</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>paths <span class="op">=</span> board.pin_download(<span class="st">&quot;raw_domestic_epc_certificates_tbl&quot;</span>)</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>dataset <span class="op">=</span> ds.dataset(paths, <span class="bu">format</span><span class="op">=</span><span class="st">&quot;parquet&quot;</span>)</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> dataset.to_table().to_pandas()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="ducklake-extension-not-available-in-r" class="level2">
 <h2 class="anchored" data-anchor-id="ducklake-extension-not-available-in-r">DuckLake extension not available in R</h2>
@@ -3283,33 +3222,27 @@ CRS:           NA
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>os.environ.setdefault(<span class="st">&quot;AWS_DEFAULT_REGION&quot;</span>, <span class="st">&quot;eu-west-2&quot;</span>)</span>
-<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pins <span class="im">import</span> board_s3</span>
-<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Create board -- note the &quot;bucket/prefix&quot; format (no trailing slash)</span></span>
-<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>board <span class="op">=</span> board_s3(<span class="st">&quot;stevecrawshaw-bucket/pins&quot;</span>, versioned<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a><span class="co"># List datasets</span></span>
-<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a>board.pin_list()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>os.environ.setdefault(<span class="st">&quot;AWS_DEFAULT_REGION&quot;</span>, <span class="st">&quot;eu-west-2&quot;</span>)</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pins <span class="im">import</span> board_s3</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Create board -- note the &quot;bucket/prefix&quot; format (no trailing slash)</span></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>board <span class="op">=</span> board_s3(<span class="st">&quot;stevecrawshaw-bucket/pins&quot;</span>, versioned<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a><span class="co"># List datasets</span></span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>board.pin_list()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<pre class="text"><code>[&#39;bdline_ua_lep_diss_tbl&#39;, &#39;bdline_ua_lep_tbl&#39;, &#39;ca_la_lookup_tbl&#39;, ...]</code></pre>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read a dataset</span></span>
-<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> board.pin_read(<span class="st">&quot;ca_la_lookup_tbl&quot;</span>)</span>
-<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.head())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read a dataset</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> board.pin_read(<span class="st">&quot;ca_la_lookup_tbl&quot;</span>)</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.head())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<pre class="text"><code>     LAD25CD                       LAD25NM  CAUTH25CD          CAUTH25NM  population
-0  E06000022  Bath and North East Somerset  E47000009  West of England       197...
-1  E06000023            Bristol, City of    E47000009  West of England       472...
-2  E06000024              North Somerset    E47000009  West of England       217...
-...</code></pre>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read metadata</span></span>
-<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>meta <span class="op">=</span> board.pin_meta(<span class="st">&quot;ca_la_lookup_tbl&quot;</span>)</span>
-<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(meta.title)</span>
-<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(meta.user[<span class="st">&quot;columns&quot;</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read metadata</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>meta <span class="op">=</span> board.pin_meta(<span class="st">&quot;ca_la_lookup_tbl&quot;</span>)</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(meta.title)</span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(meta.user[<span class="st">&quot;columns&quot;</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -3329,27 +3262,27 @@ Warning
 <h2 class="anchored" data-anchor-id="ducklake-queries">DuckLake Queries</h2>
 <p>You can run DuckLake SQL from Python using the <code>duckdb</code> package:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> duckdb</span>
-<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>conn <span class="op">=</span> duckdb.<span class="ex">connect</span>()</span>
-<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Install and load extensions</span></span>
-<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>conn.execute(<span class="st">&quot;INSTALL ducklake; LOAD ducklake;&quot;</span>)</span>
-<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>conn.execute(<span class="st">&quot;INSTALL httpfs; LOAD httpfs;&quot;</span>)</span>
-<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>conn.execute(<span class="st">&quot;INSTALL aws; LOAD aws;&quot;</span>)</span>
-<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Create S3 credential</span></span>
-<span id="cb53-11"><a href="#cb53-11" aria-hidden="true" tabindex="-1"></a>conn.execute(<span class="st">&quot;CREATE SECRET (TYPE s3, REGION &#39;eu-west-2&#39;, PROVIDER credential_chain);&quot;</span>)</span>
-<span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb53-13"><a href="#cb53-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Attach the DuckLake catalogue</span></span>
-<span id="cb53-14"><a href="#cb53-14" aria-hidden="true" tabindex="-1"></a>conn.execute(<span class="st">&quot;&quot;&quot;</span></span>
-<span id="cb53-15"><a href="#cb53-15" aria-hidden="true" tabindex="-1"></a><span class="st">    ATTACH &#39;ducklake:data/mca_env.ducklake&#39; AS lake</span></span>
-<span id="cb53-16"><a href="#cb53-16" aria-hidden="true" tabindex="-1"></a><span class="st">    (READ_ONLY, DATA_PATH &#39;s3://stevecrawshaw-bucket/ducklake/data/&#39;);</span></span>
-<span id="cb53-17"><a href="#cb53-17" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;&quot;&quot;</span>)</span>
-<span id="cb53-18"><a href="#cb53-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb53-19"><a href="#cb53-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Query</span></span>
-<span id="cb53-20"><a href="#cb53-20" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> conn.execute(<span class="st">&quot;SELECT * FROM lake.ca_la_lookup_tbl LIMIT 5&quot;</span>).fetchdf()</span>
-<span id="cb53-21"><a href="#cb53-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> duckdb</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>conn <span class="op">=</span> duckdb.<span class="ex">connect</span>()</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Install and load extensions</span></span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>conn.execute(<span class="st">&quot;INSTALL ducklake; LOAD ducklake;&quot;</span>)</span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>conn.execute(<span class="st">&quot;INSTALL httpfs; LOAD httpfs;&quot;</span>)</span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>conn.execute(<span class="st">&quot;INSTALL aws; LOAD aws;&quot;</span>)</span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Create S3 credential</span></span>
+<span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a>conn.execute(<span class="st">&quot;CREATE SECRET (TYPE s3, REGION &#39;eu-west-2&#39;, PROVIDER credential_chain);&quot;</span>)</span>
+<span id="cb50-12"><a href="#cb50-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-13"><a href="#cb50-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Attach the DuckLake catalogue</span></span>
+<span id="cb50-14"><a href="#cb50-14" aria-hidden="true" tabindex="-1"></a>conn.execute(<span class="st">&quot;&quot;&quot;</span></span>
+<span id="cb50-15"><a href="#cb50-15" aria-hidden="true" tabindex="-1"></a><span class="st">    ATTACH &#39;ducklake:data/mca_env.ducklake&#39; AS lake</span></span>
+<span id="cb50-16"><a href="#cb50-16" aria-hidden="true" tabindex="-1"></a><span class="st">    (READ_ONLY, DATA_PATH &#39;s3://stevecrawshaw-bucket/ducklake/data/&#39;);</span></span>
+<span id="cb50-17"><a href="#cb50-17" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;&quot;&quot;</span>)</span>
+<span id="cb50-18"><a href="#cb50-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-19"><a href="#cb50-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Query</span></span>
+<span id="cb50-20"><a href="#cb50-20" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> conn.execute(<span class="st">&quot;SELECT * FROM lake.ca_la_lookup_tbl LIMIT 5&quot;</span>).fetchdf()</span>
+<span id="cb50-21"><a href="#cb50-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -3368,23 +3301,23 @@ Note
 <section id="spatial-data-with-geopandas" class="level2">
 <h2 class="anchored" data-anchor-id="spatial-data-with-geopandas">Spatial Data with geopandas</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>os.environ.setdefault(<span class="st">&quot;AWS_DEFAULT_REGION&quot;</span>, <span class="st">&quot;eu-west-2&quot;</span>)</span>
-<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pins <span class="im">import</span> board_s3</span>
-<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> geopandas <span class="im">as</span> gpd</span>
-<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a>board <span class="op">=</span> board_s3(<span class="st">&quot;stevecrawshaw-bucket/pins&quot;</span>, versioned<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Download and read GeoParquet</span></span>
-<span id="cb54-10"><a href="#cb54-10" aria-hidden="true" tabindex="-1"></a>path <span class="op">=</span> board.pin_download(<span class="st">&quot;bdline_ua_lep_tbl&quot;</span>)</span>
-<span id="cb54-11"><a href="#cb54-11" aria-hidden="true" tabindex="-1"></a>gdf <span class="op">=</span> gpd.read_parquet(path[<span class="dv">0</span>])</span>
-<span id="cb54-12"><a href="#cb54-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-13"><a href="#cb54-13" aria-hidden="true" tabindex="-1"></a><span class="co"># CRS may show as OGC:CRS84 -- override to the correct CRS</span></span>
-<span id="cb54-14"><a href="#cb54-14" aria-hidden="true" tabindex="-1"></a>gdf <span class="op">=</span> gdf.set_crs(<span class="st">&quot;EPSG:27700&quot;</span>, allow_override<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb54-15"><a href="#cb54-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-16"><a href="#cb54-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Quick plot</span></span>
-<span id="cb54-17"><a href="#cb54-17" aria-hidden="true" tabindex="-1"></a>gdf.plot(column<span class="op">=</span><span class="st">&quot;name&quot;</span>, legend<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>os.environ.setdefault(<span class="st">&quot;AWS_DEFAULT_REGION&quot;</span>, <span class="st">&quot;eu-west-2&quot;</span>)</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pins <span class="im">import</span> board_s3</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> geopandas <span class="im">as</span> gpd</span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>board <span class="op">=</span> board_s3(<span class="st">&quot;stevecrawshaw-bucket/pins&quot;</span>, versioned<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Download and read GeoParquet</span></span>
+<span id="cb51-10"><a href="#cb51-10" aria-hidden="true" tabindex="-1"></a>path <span class="op">=</span> board.pin_download(<span class="st">&quot;bdline_ua_lep_tbl&quot;</span>)</span>
+<span id="cb51-11"><a href="#cb51-11" aria-hidden="true" tabindex="-1"></a>gdf <span class="op">=</span> gpd.read_parquet(path[<span class="dv">0</span>])</span>
+<span id="cb51-12"><a href="#cb51-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-13"><a href="#cb51-13" aria-hidden="true" tabindex="-1"></a><span class="co"># CRS may show as OGC:CRS84 -- override to the correct CRS</span></span>
+<span id="cb51-14"><a href="#cb51-14" aria-hidden="true" tabindex="-1"></a>gdf <span class="op">=</span> gdf.set_crs(<span class="st">&quot;EPSG:27700&quot;</span>, allow_override<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb51-15"><a href="#cb51-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-16"><a href="#cb51-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Quick plot</span></span>
+<span id="cb51-17"><a href="#cb51-17" aria-hidden="true" tabindex="-1"></a>gdf.plot(column<span class="op">=</span><span class="st">&quot;name&quot;</span>, legend<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -3405,45 +3338,45 @@ Warning
 <p>A brief SQL primer for analysts who are familiar with R but new to SQL. All examples use DuckLake tables.</p>
 <p><strong>SELECT – choose columns:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> LAD25NM, population</span>
-<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.ca_la_lookup_tbl;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> LAD25NM, population</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.ca_la_lookup_tbl;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>R equivalent: <code>df |&gt; select(LAD25NM, population)</code></p>
 <p><strong>WHERE – filter rows:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> LAD25NM, population</span>
-<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.ca_la_lookup_tbl</span>
-<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> CAUTH25NM <span class="op">=</span> <span class="st">&#39;West of England&#39;</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> LAD25NM, population</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.ca_la_lookup_tbl</span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> CAUTH25NM <span class="op">=</span> <span class="st">&#39;West of England&#39;</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>R equivalent: <code>df |&gt; filter(CAUTH25NM == &quot;West of England&quot;)</code></p>
 <p><strong>ORDER BY – sort results:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> LAD25NM, population</span>
-<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.ca_la_lookup_tbl</span>
-<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> population <span class="kw">DESC</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> LAD25NM, population</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.ca_la_lookup_tbl</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> population <span class="kw">DESC</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>R equivalent: <code>df |&gt; arrange(desc(population))</code></p>
 <p><strong>LIMIT – return a fixed number of rows:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> lake.la_ghg_emissions_tbl <span class="kw">LIMIT</span> <span class="dv">10</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> lake.la_ghg_emissions_tbl <span class="kw">LIMIT</span> <span class="dv">10</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>R equivalent: <code>df |&gt; head(10)</code> or <code>df |&gt; slice_head(n = 10)</code></p>
 <p><strong>GROUP BY – aggregate:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> CAUTH25NM, <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> n_las, <span class="fu">SUM</span>(population) <span class="kw">AS</span> total_pop</span>
-<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.ca_la_lookup_tbl</span>
-<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> CAUTH25NM</span>
-<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> total_pop <span class="kw">DESC</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> CAUTH25NM, <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> n_las, <span class="fu">SUM</span>(population) <span class="kw">AS</span> total_pop</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.ca_la_lookup_tbl</span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> CAUTH25NM</span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> total_pop <span class="kw">DESC</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>R equivalent: <code>df |&gt; group_by(CAUTH25NM) |&gt; summarise(n_las = n(), total_pop = sum(population))</code></p>
 <p><strong>JOIN – combine tables:</strong></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> l.LAD25NM, g.<span class="dt">year</span>, g.territorial_emissions_kt_co2e</span>
-<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.la_ghg_emissions_tbl g</span>
-<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> lake.ca_la_lookup_tbl l</span>
-<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">ON</span> g.local_authority_code <span class="op">=</span> l.LAD25CD</span>
-<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> l.CAUTH25NM <span class="op">=</span> <span class="st">&#39;West of England&#39;</span></span>
-<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> g.<span class="dt">year</span> <span class="op">=</span> <span class="dv">2021</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> l.LAD25NM, g.<span class="dt">year</span>, g.territorial_emissions_kt_co2e</span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> lake.la_ghg_emissions_tbl g</span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> lake.ca_la_lookup_tbl l</span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">ON</span> g.local_authority_code <span class="op">=</span> l.LAD25CD</span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> l.CAUTH25NM <span class="op">=</span> <span class="st">&#39;West of England&#39;</span></span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> g.<span class="dt">year</span> <span class="op">=</span> <span class="dv">2021</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>R equivalent: <code>left_join(ghg, lookup, by = c(&quot;local_authority_code&quot; = &quot;LAD25CD&quot;))</code></p>
 <p><strong>Common aggregate functions:</strong></p>

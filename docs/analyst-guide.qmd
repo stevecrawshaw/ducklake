@@ -16,7 +16,7 @@ format:
     toc-depth: 3
 execute:
   echo: true
-  eval: false
+  eval: true
   warning: false
 ---
 
@@ -24,7 +24,7 @@ execute:
 
 # Introduction
 
-WECA's shared data platform provides **18 curated datasets** covering local authority lookups, greenhouse gas emissions, energy performance certificates, broadband coverage, IMD deprivation, business counts, and spatial boundaries. All data is stored on Amazon S3 and accessible through two complementary routes:
+WECA's shared data platform provides **18 curated datasets** covering local authority lookups, greenhouse gas emissions, energy performance certificates, deprivation indices, postcode centroids, tenure, and spatial boundaries. All data is stored on Amazon S3 and accessible through two complementary routes:
 
 - **Pins (R or Python):** Read datasets directly into data frames. Best for quick exploratory analysis, filtering, and visualisation.
 - **DuckLake (SQL via DuckDB CLI):** Query datasets with SQL, join across tables, use pre-built WECA-filtered views, and browse the data catalogue. Best for complex queries and when you need to work across multiple tables.
@@ -38,6 +38,23 @@ If you follow the Prerequisites section below, you will be able to read your fir
 
 This guide covers everything you need: package installation, AWS credential setup, reading data via pins, querying the DuckLake catalogue with SQL, working with spatial data, and troubleshooting common issues. Python equivalents are provided in [Appendix A](#appendix-a-python-equivalents).
 
+```{r}
+#| echo: false
+#| output: false
+#| label: setup
+library(pins)
+library(arrow)
+library(sf)
+library(dplyr)
+library(ggplot2)
+
+board <- board_s3(
+  bucket = "stevecrawshaw-bucket",
+  prefix = "pins/",
+  region = "eu-west-2",
+  versioned = TRUE
+)
+```
 
 # Prerequisites and Setup
 
@@ -48,6 +65,7 @@ Before accessing data, you need three things: R packages, the DuckDB command-lin
 Install the core packages. This guide assumes you already have the tidyverse installed.
 
 ```{r}
+#| eval: false
 install.packages(c("pins", "arrow", "sf", "duckdb", "DBI"))
 ```
 
@@ -70,6 +88,7 @@ The DuckDB command-line interface (CLI) is required for querying the DuckLake ca
 3. Verify installation:
 
 ```{bash}
+#| eval: false
 duckdb --version
 ```
 
@@ -127,21 +146,18 @@ Pick whichever tool you use day-to-day. A successful result from any one method 
 **R (pins):**
 
 ```{r}
+#| eval: false
 library(pins)
-board <- board_s3(bucket = "stevecrawshaw-bucket", region = "eu-west-2")
+board <- board_s3(bucket = "stevecrawshaw-bucket",
+                  prefix = "pins/",
+                   region = "eu-west-2")
 pin_list(board)
-```
-
-```text
- [1] "bdline_ua_lep_diss_tbl"             "bdline_ua_lep_tbl"
- [3] "bdline_ua_weca_diss_tbl"            "bdline_ward_lep_tbl"
- [5] "ca_boundaries_bgc_tbl"              "ca_la_lookup_tbl"
- ...
 ```
 
 **DuckDB CLI:**
 
 ```{sql}
+--| eval: false
 INSTALL aws; LOAD aws;
 CREATE OR REPLACE SECRET (
     TYPE s3, PROVIDER credential_chain,
@@ -153,6 +169,7 @@ SELECT * FROM glob('s3://stevecrawshaw-bucket/*');
 **AWS CLI (optional):**
 
 ```{bash}
+#| eval: false
 aws s3 ls s3://stevecrawshaw-bucket/
 ```
 
@@ -174,33 +191,41 @@ The platform provides 18 base tables and 12 pre-built views. The table below is 
 | `bdline_ua_lep_tbl` | Boundary line UA LEP | Yes | 5 |
 | `bdline_ua_weca_diss_tbl` | Boundary line UA WECA dissolved | Yes | 1 |
 | `bdline_ward_lep_tbl` | Boundary line wards LEP | Yes | 70 |
+| `boundary_lookup_tbl` | Boundary lookup (LA/ward/LSOA codes) | -- | 700 |
 | `ca_boundaries_bgc_tbl` | Combined authority boundaries (BGC) | Yes | 11 |
 | `ca_la_lookup_tbl` | Combined authority to local authority lookup | -- | 106 |
 | `codepoint_open_lep_tbl` | Codepoint Open postcodes LEP | Yes | 49,000 |
-| `imd_2019_lsoa_lep_tbl` | IMD 2019 by LSOA (LEP area) | -- | 700 |
-| `la_broadband_coverage_tbl` | Local authority broadband coverage | -- | 440 |
-| `la_business_counts_tbl` | Local authority business counts | -- | 3,600 |
+| `eng_lsoa_imd_tbl` | English LSOA Index of Multiple Deprivation | -- | 33,000 |
+| `iod2025_tbl` | Index of Deprivation 2025 | -- | 33,000 |
 | `la_ghg_emissions_tbl` | Local authority greenhouse gas emissions | -- | 27,000 |
-| `la_house_price_earnings_ratio_tbl` | House price to earnings ratio by LA | -- | 2,100 |
-| `la_imd_2019_summary_tbl` | IMD 2019 summary by local authority | -- | 800 |
+| `la_ghg_emissions_wide_tbl` | LA GHG emissions (wide format) | -- | 6,000 |
 | `lsoa_2021_lep_tbl` | LSOA 2021 boundaries (LEP area) | Yes | 700 |
-| `oa_2021_lsoa_lep_lookup_tbl` | OA 2021 to LSOA LEP lookup | -- | 3,300 |
 | `open_uprn_lep_tbl` | Open UPRN addresses (LEP area) | Yes | 700,000 |
+| `postcode_centroids_tbl` | Postcode centroids (all England) | -- | 1,800,000 |
 | `raw_domestic_epc_certificates_tbl` | Domestic EPC certificates (raw) | -- | 19,000,000 |
-| `uk_hpi_tbl` | UK House Price Index | -- | 100,000 |
+| `raw_non_domestic_epc_certificates_tbl` | Non-domestic EPC certificates (raw) | -- | 900,000 |
+| `uk_lsoa_tenure_tbl` | UK LSOA tenure (Census 2021) | -- | 35,000 |
 
 : {tbl-colwidths="[30,40,10,20]"}
 
 ## Views (WECA-filtered)
 
-The catalogue includes 12 views, most of which pre-filter data to the four WECA local authorities (Bath and North East Somerset, Bristol, North Somerset, South Gloucestershire). Views have names ending in `_weca_vw` or `_source_vw`.
+The catalogue includes 12 views. Four are source views that reshape or join data; the remaining eight pre-filter data to the four WECA local authorities (Bath and North East Somerset, Bristol, North Somerset, South Gloucestershire). Views have names ending in `_weca_vw`, `_vw`, or `_ods_vw`.
 
 | Name | Description |
 |------|-------------|
+| `ca_la_lookup_inc_ns_vw` | CA/LA lookup including North Somerset |
+| `weca_lep_la_vw` | WECA LEP local authorities (4 rows) |
+| `ca_la_ghg_emissions_sub_sector_ods_vw` | GHG emissions joined with CA/LA lookup |
+| `epc_domestic_vw` | Domestic EPC with derived fields (construction year, tenure) |
 | `la_ghg_emissions_weca_vw` | GHG emissions filtered to WECA LAs |
-| `la_broadband_coverage_weca_vw` | Broadband coverage filtered to WECA LAs |
-| `la_business_counts_weca_vw` | Business counts filtered to WECA LAs |
-| `weca_lep_la_vw` | WECA LEP local authority lookup (4 rows) |
+| `la_ghg_emissions_wide_weca_vw` | GHG emissions (wide) filtered to WECA LAs |
+| `raw_domestic_epc_weca_vw` | Domestic EPC filtered to WECA LAs |
+| `raw_non_domestic_epc_weca_vw` | Non-domestic EPC filtered to WECA LAs |
+| `boundary_lookup_weca_vw` | Boundary lookup filtered to WECA LAs |
+| `postcode_centroids_weca_vw` | Postcode centroids filtered to WECA LAs |
+| `iod2025_weca_vw` | Index of Deprivation 2025 filtered to WECA LAs |
+| `ca_la_lookup_weca_vw` | CA/LA lookup filtered to WECA LAs |
 
 : {tbl-colwidths="[40,60]"}
 
@@ -217,6 +242,7 @@ The `pins` package is the primary way to read data from the platform into R. All
 Connect to the S3 board. You only need to do this once per session.
 
 ```{r}
+#| eval: false
 library(pins)
 
 board <- board_s3(
@@ -237,19 +263,6 @@ See all available datasets on the board:
 pin_list(board)
 ```
 
-```text
- [1] "bdline_ua_lep_diss_tbl"             "bdline_ua_lep_tbl"
- [3] "bdline_ua_weca_diss_tbl"            "bdline_ward_lep_tbl"
- [5] "ca_boundaries_bgc_tbl"              "ca_la_lookup_tbl"
- [7] "codepoint_open_lep_tbl"             "columns_catalogue"
- [9] "datasets_catalogue"                 "imd_2019_lsoa_lep_tbl"
-[11] "la_broadband_coverage_tbl"          "la_business_counts_tbl"
-[13] "la_ghg_emissions_tbl"               "la_house_price_earnings_ratio_tbl"
-[15] "la_imd_2019_summary_tbl"            "lsoa_2021_lep_tbl"
-[17] "oa_2021_lsoa_lep_lookup_tbl"        "open_uprn_lep_tbl"
-[19] "raw_domestic_epc_certificates_tbl"  "uk_hpi_tbl"
-```
-
 ## Reading a Dataset
 
 Read a dataset directly into an R data frame with `pin_read()`. Start with `ca_la_lookup_tbl` -- it is small (106 rows) and loads instantly.
@@ -259,27 +272,8 @@ df <- pin_read(board, "ca_la_lookup_tbl")
 head(df)
 ```
 
-```text
-  LAD25CD              LAD25NM  CAUTH25CD                CAUTH25NM population
-1 E06000022 Bath and North ...  E47000009 West of England         197...
-2 E06000023           Bristol   E47000009 West of England         472...
-3 E06000024      North Somerset E47000009 West of England         217...
-4 E06000025  South Gloucest...  E47000009 West of England         285...
-5 E08000025        Birmingham   E47000007 West Midlands          1144...
-6 E08000026            Coventry E47000007 West Midlands           345...
-```
-
 ```{r}
 str(df)
-```
-
-```text
-'data.frame':	106 obs. of  5 variables:
- $ LAD25CD   : chr  "E06000022" "E06000023" "E06000024" ...
- $ LAD25NM   : chr  "Bath and North East Somerset" "Bristol, City of" ...
- $ CAUTH25CD : chr  "E47000009" "E47000009" "E47000009" ...
- $ CAUTH25NM : chr  "West of England" "West of England" ...
- $ population: num  197... 472... 217... 285... 1144... ...
 ```
 
 ## Accessing Metadata
@@ -291,29 +285,8 @@ meta <- pin_meta(board, "ca_la_lookup_tbl")
 meta$title
 ```
 
-```text
-[1] "Combined authority to local authority lookup"
-```
-
 ```{r}
 meta$user$columns
-```
-
-```text
-$LAD25CD
-[1] "2025 Local Authority District code"
-
-$LAD25NM
-[1] "2025 Local Authority District name"
-
-$CAUTH25CD
-[1] "2025 Combined Authority code"
-
-$CAUTH25NM
-[1] "2025 Combined Authority name"
-
-$population
-[1] "Mid-year population estimate"
 ```
 
 Column descriptions come from the data catalogue and are embedded in each pin's metadata. Use `meta$user$column_types` to see the data types.
@@ -323,6 +296,7 @@ Column descriptions come from the data catalogue and are embedded in each pin's 
 The `raw_domestic_epc_certificates_tbl` dataset contains approximately 19 million rows and is stored as a multi-file pin (multiple parquet files). For this table, `pin_read()` may be slow or fail. Use `arrow::open_dataset()` instead:
 
 ```{r}
+#| eval: false
 library(arrow)
 
 # Download the parquet files
@@ -353,6 +327,7 @@ DuckLake provides SQL access to the same datasets. This is useful when you need 
 Open the DuckDB CLI and install the required extensions. This only needs to be done once -- extensions are cached locally.
 
 ```{sql}
+--| eval: false
 INSTALL ducklake;
 LOAD ducklake;
 
@@ -366,6 +341,7 @@ LOAD aws;
 For spatial queries, also install:
 
 ```{sql}
+--| eval: false
 INSTALL spatial;
 LOAD spatial;
 ```
@@ -375,6 +351,7 @@ LOAD spatial;
 Each time you open a DuckDB CLI session, you need to create an S3 credential and attach the catalogue.
 
 ```{sql}
+--| eval: false
 -- Create S3 credential (uses your ~/.aws/credentials file)
 CREATE SECRET (TYPE s3, REGION 'eu-west-2', PROVIDER credential_chain);
 
@@ -398,47 +375,34 @@ The `.ducklake` file is only metadata (a few KB). The actual data lives on S3 an
 To see all available tables and views:
 
 ```{sql}
+--| eval: false
 USE lake;
 SHOW TABLES;
 ```
-
-| name |
-|------|
-| bdline_ua_lep_diss_tbl |
-| bdline_ua_lep_tbl |
-| ... |
-| la_ghg_emissions_weca_vw |
-| weca_lep_la_vw |
-| datasets_catalogue |
-| columns_catalogue |
 
 ## Basic SQL Queries
 
 **Select all rows from a small table:**
 
 ```{sql}
+--| eval: false
 SELECT * FROM lake.ca_la_lookup_tbl LIMIT 5;
 ```
 
 **Filter with WHERE:**
 
 ```{sql}
+--| eval: false
 SELECT LAD25NM, population
 FROM lake.ca_la_lookup_tbl
 WHERE CAUTH25NM = 'West of England'
 ORDER BY population DESC;
 ```
 
-| LAD25NM | population |
-|---------|----------:|
-| Bristol, City of | 472000 |
-| South Gloucestershire | 285000 |
-| North Somerset | 217000 |
-| Bath and North East Somerset | 197000 |
-
 **Aggregate with GROUP BY:**
 
 ```{sql}
+--| eval: false
 SELECT territorial_emissions_sector,
        ROUND(SUM(territorial_emissions_kt_co2e), 1) AS total_kt
 FROM lake.la_ghg_emissions_tbl
@@ -452,6 +416,7 @@ ORDER BY total_kt DESC;
 **Join tables:**
 
 ```{sql}
+--| eval: false
 SELECT l.LAD25NM, g.year,
        ROUND(SUM(g.territorial_emissions_kt_co2e), 1) AS total_emissions
 FROM lake.la_ghg_emissions_tbl g
@@ -467,6 +432,7 @@ LIMIT 8;
 WECA-filtered views pre-filter data to the four WECA local authorities, saving you from writing the same WHERE clause repeatedly.
 
 ```{sql}
+--| eval: false
 -- Instead of filtering manually:
 SELECT * FROM lake.la_ghg_emissions_tbl
 WHERE local_authority_code IN ('E06000022','E06000023','E06000024','E06000025');
@@ -476,17 +442,11 @@ SELECT * FROM lake.la_ghg_emissions_weca_vw;
 ```
 
 ```{sql}
+--| eval: false
 -- List distinct authorities in a WECA view
 SELECT DISTINCT local_authority_code, local_authority_name
 FROM lake.la_ghg_emissions_weca_vw;
 ```
-
-| local_authority_code | local_authority_name |
-|----------------------|----------------------|
-| E06000022 | Bath and North East Somerset |
-| E06000023 | Bristol, City of |
-| E06000024 | North Somerset |
-| E06000025 | South Gloucestershire |
 
 ## Querying the Data Catalogue
 
@@ -495,21 +455,16 @@ The catalogue includes two metadata tables that describe every dataset and colum
 **List all datasets with descriptions and row counts:**
 
 ```{sql}
+--| eval: false
 SELECT name, description, type, row_count
 FROM lake.datasets_catalogue
 ORDER BY type, name;
 ```
 
-| name | description | type | row_count |
-|------|-------------|------|----------:|
-| bdline_ua_lep_diss_tbl | Boundary line UA LEP dissolved | table | 1 |
-| ca_la_lookup_tbl | Combined authority to local ... | table | 106 |
-| ... | ... | ... | ... |
-| la_ghg_emissions_weca_vw | WECA-filtered subset of ... | view | ... |
-
 **Explore columns for a specific table:**
 
 ```{sql}
+--| eval: false
 SELECT column_name, data_type, description, example_1
 FROM lake.columns_catalogue
 WHERE table_name = 'la_ghg_emissions_tbl'
@@ -519,6 +474,7 @@ ORDER BY column_name;
 **Find spatial datasets:**
 
 ```{sql}
+--| eval: false
 SELECT name, geometry_type, crs, row_count
 FROM lake.datasets_catalogue
 WHERE geometry_type IS NOT NULL;
@@ -529,6 +485,7 @@ WHERE geometry_type IS NOT NULL;
 DuckLake keeps snapshots of your data. You can query a table as it existed at a previous version:
 
 ```{sql}
+--| eval: false
 -- Query the table at version 1
 SELECT COUNT(*) FROM lake.ca_la_lookup_tbl AT (VERSION => 1);
 
@@ -553,16 +510,6 @@ The `sfarrow` package fails on GeoParquet files produced by DuckDB because DuckD
 Spatial pins must be read with `pin_download()` followed by `arrow::read_parquet()`, not with `pin_read()`:
 
 ```{r}
-library(pins)
-library(arrow)
-
-board <- board_s3(
-  bucket = "stevecrawshaw-bucket",
-  prefix = "pins/",
-  region = "eu-west-2",
-  versioned = TRUE
-)
-
 # Download the GeoParquet file
 pin_path <- pin_download(board, "bdline_ua_lep_tbl")
 
@@ -575,8 +522,6 @@ arrow_tbl <- arrow::read_parquet(pin_path, as_data_frame = FALSE)
 Convert the Arrow table to an `sf` object in two steps:
 
 ```{r}
-library(sf)
-
 sf_obj <- sf::st_as_sf(as.data.frame(arrow_tbl))
 ```
 
@@ -584,18 +529,6 @@ The two-step process (`as.data.frame()` then `st_as_sf()`) is needed because `sf
 
 ```{r}
 sf_obj
-```
-
-```text
-Simple feature collection with 5 features and 2 fields
-Geometry type: MULTIPOLYGON
-Dimension:     XY
-Bounding box:  xmin: 333099 ymin: 155782.9 xmax: 389539.2 ymax: 199597.7
-CRS:           NA
-  name         area_ha                       shape
-1 Bath and ... 35089.1 MULTIPOLYGON (((368338.4 ...
-2 Bristol, ... 11001.7 MULTIPOLYGON (((357291.7 ...
-...
 ```
 
 ## Setting CRS
@@ -628,10 +561,6 @@ meta <- pin_meta(board, "bdline_ua_lep_tbl")
 meta$user$crs
 ```
 
-```text
-[1] "EPSG:27700"
-```
-
 ## Plotting a Quick Map
 
 Once the CRS is set, you can plot directly:
@@ -643,8 +572,6 @@ plot(sf_obj["name"])
 For a more polished map using ggplot2:
 
 ```{r}
-library(ggplot2)
-
 ggplot(sf_obj) +
   geom_sf(aes(fill = name), colour = "white") +
   theme_minimal() +
@@ -757,6 +684,7 @@ In Python, `board_s3()` takes a single string `"bucket/prefix"` rather than sepa
 :::
 
 ```{python}
+#| eval: false
 import os
 os.environ.setdefault("AWS_DEFAULT_REGION", "eu-west-2")
 
@@ -769,25 +697,15 @@ board = board_s3("stevecrawshaw-bucket/pins", versioned=True)
 board.pin_list()
 ```
 
-```text
-['bdline_ua_lep_diss_tbl', 'bdline_ua_lep_tbl', 'ca_la_lookup_tbl', ...]
-```
-
 ```{python}
+#| eval: false
 # Read a dataset
 df = board.pin_read("ca_la_lookup_tbl")
 print(df.head())
 ```
 
-```text
-     LAD25CD                       LAD25NM  CAUTH25CD          CAUTH25NM  population
-0  E06000022  Bath and North East Somerset  E47000009  West of England       197...
-1  E06000023            Bristol, City of    E47000009  West of England       472...
-2  E06000024              North Somerset    E47000009  West of England       217...
-...
-```
-
 ```{python}
+#| eval: false
 # Read metadata
 meta = board.pin_meta("ca_la_lookup_tbl")
 print(meta.title)
@@ -803,6 +721,7 @@ print(meta.user["columns"])
 You can run DuckLake SQL from Python using the `duckdb` package:
 
 ```{python}
+#| eval: false
 import duckdb
 
 conn = duckdb.connect()
@@ -833,6 +752,7 @@ Unlike R, the Python `duckdb` package does support the `ducklake` extension. You
 ## Spatial Data with geopandas
 
 ```{python}
+#| eval: false
 import os
 os.environ.setdefault("AWS_DEFAULT_REGION", "eu-west-2")
 
@@ -864,6 +784,7 @@ A brief SQL primer for analysts who are familiar with R but new to SQL. All exam
 **SELECT -- choose columns:**
 
 ```{sql}
+--| eval: false
 SELECT LAD25NM, population
 FROM lake.ca_la_lookup_tbl;
 ```
@@ -873,6 +794,7 @@ R equivalent: `df |> select(LAD25NM, population)`
 **WHERE -- filter rows:**
 
 ```{sql}
+--| eval: false
 SELECT LAD25NM, population
 FROM lake.ca_la_lookup_tbl
 WHERE CAUTH25NM = 'West of England';
@@ -883,6 +805,7 @@ R equivalent: `df |> filter(CAUTH25NM == "West of England")`
 **ORDER BY -- sort results:**
 
 ```{sql}
+--| eval: false
 SELECT LAD25NM, population
 FROM lake.ca_la_lookup_tbl
 ORDER BY population DESC;
@@ -893,6 +816,7 @@ R equivalent: `df |> arrange(desc(population))`
 **LIMIT -- return a fixed number of rows:**
 
 ```{sql}
+--| eval: false
 SELECT * FROM lake.la_ghg_emissions_tbl LIMIT 10;
 ```
 
@@ -901,6 +825,7 @@ R equivalent: `df |> head(10)` or `df |> slice_head(n = 10)`
 **GROUP BY -- aggregate:**
 
 ```{sql}
+--| eval: false
 SELECT CAUTH25NM, COUNT(*) AS n_las, SUM(population) AS total_pop
 FROM lake.ca_la_lookup_tbl
 GROUP BY CAUTH25NM
@@ -912,6 +837,7 @@ R equivalent: `df |> group_by(CAUTH25NM) |> summarise(n_las = n(), total_pop = s
 **JOIN -- combine tables:**
 
 ```{sql}
+--| eval: false
 SELECT l.LAD25NM, g.year, g.territorial_emissions_kt_co2e
 FROM lake.la_ghg_emissions_tbl g
 JOIN lake.ca_la_lookup_tbl l
