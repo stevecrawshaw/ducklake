@@ -2,26 +2,25 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-22)
+See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** Analysts can discover and access curated, well-documented datasets from a shared catalogue without needing to know where or how the data is stored.
-**Current focus:** Phase 6 in progress -- Plan 01 complete, Plan 02 pending
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 6 of 6 (Analyst Documentation)
-Plan: 1 of 2 complete
-Status: In progress
-Last activity: 2026-02-25 -- Completed 06-01-PLAN.md (Quarto infrastructure)
+Phase: v1.0 complete (6 phases, 14 plans)
+Status: Milestone shipped
+Last activity: 2026-02-26 — Completed v1.0 MVP milestone
 
-Progress: [██████████████░] 92%
+Progress: [████████████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 14
 - Average duration: ~14 minutes
-- Total execution time: ~168 minutes
+- Total execution time: ~180 minutes
 
 **By Phase:**
 
@@ -32,72 +31,26 @@ Progress: [██████████████░] 92%
 | 03-ducklake-catalogue | 3 | ~43 min | ~14 min |
 | 04-spatial-data-handling | 2 | ~10 min | ~5 min |
 | 05-refresh-pipeline | 2 | ~77 min | ~39 min |
-| 06-analyst-documentation | 1 | ~8 min | ~8 min |
+| 06-analyst-documentation | 2 | ~16 min | ~8 min |
 
-**Recent Trend:**
-- Last 5 plans: 04-01 (~7 min), 04-02 (~3 min), 05-01 (~26 min), 05-02 (~51 min), 06-01 (~8 min)
-- Trend: Documentation plan fast -- infrastructure setup only, no data processing
-
-*Updated after each plan completion*
+*Updated at v1.0 milestone completion*
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- [Roadmap]: Dual-track architecture -- DuckLake under `ducklake/` prefix, pins under `pins/` prefix, separate file lifecycles
-- [Roadmap]: Non-spatial tables first, spatial isolated in Phase 4 (highest risk component)
-- [Roadmap]: Phases 3 and 4 can potentially parallelise after Phase 2
-- [01-02]: Used placeholder format for credentials, four verification methods (DuckDB, R, Python, AWS CLI)
-- [02-01]: Spatial tables identified via BLOB/GEOMETRY/WKB column type patterns (8 spatial, 10 non-spatial)
-- [02-01]: pyarrow added as explicit dependency for Python parquet reading
-- [02-01]: ca_la_lookup_tbl used as interop test table (smallest non-spatial, 106 rows)
-- [02-02]: Chunked pin_upload pattern established for tables with >2GB parquet output (curl upload limit workaround)
-- [02-03]: Python pin_read fails on multi-file pins from pin_upload; arrow dataset fallback required
-- [03-01]: Local .ducklake file required -- DuckDB cannot create database files on S3
-- [03-01]: Spatial columns cast to BLOB for DuckLake compatibility (WKB_BLOB/GEOMETRY not supported)
-- [03-01]: Individual CREATE TABLE used instead of COPY FROM DATABASE (spatial types cause failure)
-- [03-01]: R script uses DuckDB CLI (R duckdb v1.4.4 lacks ducklake extension)
-- [03-02]: Column comments filtered to base tables only (403 of 663; 260 on views excluded)
-- [03-02]: weca_lep_la_vw returns 4 rows (North Somerset is 4th WECA LEP LA, not additional)
-- [03-02]: 3 spatial-dependent views deferred to Phase 4
-- [03-03]: Time-based retention (90 days) chosen over version-count -- DuckLake snapshots are database-wide, not per-table
-- [04-01]: sfarrow fails on GeoParquet from DuckDB (missing CRS in metadata) -- use arrow::read_parquet + sf::st_as_sf instead
-- [04-01]: Python pins board_s3 uses "bucket/prefix" path format, not separate prefix parameter
-- [04-01]: CRS not embedded in GeoParquet by DuckDB -- track in pin metadata, analysts set explicitly
-- [04-01]: geopandas added as Python dependency for spatial pin consumption
-- [04-02]: Export from source DB (not lake) for GeoParquet -- avoids S3 round-trip
-- [04-02]: geom_valid flag preserves original data -- analysts decide how to handle invalid geometries
-- [05-01]: Batch DuckLake operations: all 18 DROP+CREATE in single SQL file, one CLI call
-- [05-01]: Batch row count validation via UNION ALL query (one CLI call instead of 18)
-- [05-01]: DuckDB CLI box-drawing output parsed by replacing unicode pipe chars and splitting
-- [05-02]: Source DB column metadata used for catalogue (DuckLake loses comments on DROP+CREATE)
-- [05-02]: ST_Extent_Agg for aggregate bounding boxes (ST_Extent is per-geometry, not aggregate)
-- [05-02]: Example values sampled via R DuckDB connection (not CLI) to avoid Windows encoding issues
-- [05-02]: GEOMETRY/BLOB columns get NULL examples; view descriptions generated from name patterns
-- [Phase 06]: Dual-format Quarto output: HTML (custom.scss) + PDF (weca-report-typst)
-
-### Pending Todos
-
-None.
+All decisions logged in PROJECT.md Key Decisions table.
 
 ### Blockers/Concerns
 
-- [RESOLVED]: WKB_BLOB to DuckLake native geometry conversion validated in 04-01 spike -- ST_GeomFromWKB works, GEOMETRY type confirmed
-- [RESOLVED]: GeoParquet pipeline validated -- DuckDB COPY TO produces GeoParquet 1.0.0, R and Python can read
-- [03-01]: DuckLake catalogue file is local (data/mca_env.ducklake) -- analysts need this file to attach; sharing mechanism TBD
-- [03-01]: Orphaned parquet files on S3 from failed COPY FROM DATABASE attempt; cosmetic, does not affect functionality
-- [03-01]: R duckdb package (v1.4.4) and DuckDB CLI (v1.4.1) version mismatch; scripts use CLI
-- [04-01]: sfarrow incompatible with DuckDB GeoParquet (no CRS in geo metadata) -- use arrow + sf instead
-- [04-01]: Python geopandas reports CRS as OGC:CRS84 when GeoParquet has no CRS metadata -- analysts must set CRS explicitly
-- [02-01]: s3fs version warning (cosmetic) -- may want to pin s3fs version in future
-- [02-03]: Python pins library cannot pin_read multi-file pins -- analysts should use arrow/duckdb for EPC table
+Open for next milestone:
+- DuckLake catalogue file is local (data/mca_env.ducklake) — sharing mechanism TBD
+- Python pins cannot pin_read multi-file pins — arrow/duckdb fallback documented
+- DuckDB GeoParquet lacks CRS metadata — analysts set explicitly (documented in guide)
+- R duckdb package lacks ducklake extension — scripts use CLI
 
 ## Session Continuity
 
-Last session: 2026-02-25
-Stopped at: Completed 06-01-PLAN.md (Quarto infrastructure)
-Resume action: Execute 06-02-PLAN.md (content authoring)
-Resume file: .planning/phases/06-analyst-documentation/06-01-SUMMARY.md
+Last session: 2026-02-26
+Stopped at: v1.0 milestone completion
+Resume action: `/gsd:new-milestone` for next milestone
