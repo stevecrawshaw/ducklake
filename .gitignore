@@ -19,3 +19,9 @@ data/
 # AWS CLI installer (downloaded locally, not part of project)
 aws/
 awscliv2.zip
+
+# Quarto build output (rendered site)
+docs/_site/
+
+# Quarto processing cache (NOT _freeze — that must be committed)
+docs/.quarto/

@@ -6,11 +6,7 @@ date: last-modified
 title-block-banner: true
 format:
   html:
-    theme: [default, custom.scss]
-    toc: true
-    toc-depth: 3
     code-fold: false
-    embed-resources: true
   weca-report-typst:
     toc: true
     toc-depth: 3
@@ -88,12 +84,8 @@ The DuckDB command-line interface (CLI) is required for querying the DuckLake ca
 3. Verify installation:
 
 ```{bash}
-#| eval: false
+#| eval: true
 duckdb --version
-```
-
-```text
-v1.4.1 (Groundhog Day)
 ```
 
 ::: {.callout-note}
@@ -111,7 +103,7 @@ Create the file at:
 - **Windows:** `C:\Users\USERNAME\.aws\credentials`
 - **Linux/Mac:** `~/.aws/credentials`
 
-If the `.aws` directory does not exist, create it first. Paste the following content, replacing the placeholders with your actual keys:
+If the `.aws` directory does not exist, create it first. Paste the following content, replacing the placeholders with your actual keys - get these from Steve:
 
 ```ini
 [default]

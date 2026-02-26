@@ -1,0 +1,8 @@
+---
+title: "WECA Data Platform"
+subtitle: "Shared datasets for analysts via pins and DuckLake"
+---
+
+Welcome to the WECA Data Platform documentation.
+
+**[Analyst Guide](analyst-guide.qmd)** — full setup instructions, code examples, and reference for accessing shared datasets via R pins, Python, and DuckLake SQL.

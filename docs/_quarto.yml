@@ -1,0 +1,20 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "WECA Data Platform"
+  navbar:
+    left:
+      - text: "Home"
+        href: index.qmd
+      - text: "Analyst Guide"
+        href: analyst-guide.qmd
+
+format:
+  html:
+    theme: [default, custom.scss]
+    toc: true
+    toc-depth: 3
+
+freeze: auto

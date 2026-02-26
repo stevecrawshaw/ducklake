@@ -10,3 +10,7 @@ SELECT comment FROM duckdb_tables() WHERE database_name='lake' AND table_name='l
 SELECT DISTINCT local_authority_code FROM la_ghg_emissions_weca_vw;
 --   4. Check snapshots:
 SELECT * FROM lake.snapshots() ORDER BY snapshot_id DESC LIMIT 5;
+--- 5. Check comments on columns
+SELECT column_name, comment
+FROM duckdb_columns()
+WHERE database_name='lake' AND table_name='raw_non_domestic_epc_certificates_tbl';

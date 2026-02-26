@@ -72,7 +72,7 @@
     )[
       // Logo in white upper area
       #place(top + center, dy: 8%)[
-        #image("_extensions/weca-report/assets/logo.png", width: 2.2in)
+        #image("_extensions/stevecrawshaw/weca-report/assets/logo.png", width: 2.2in)
       ]
 
       // Title content in green band
