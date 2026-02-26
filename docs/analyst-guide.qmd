@@ -402,20 +402,15 @@ USE lake;
 SHOW TABLES;
 ```
 
-```text
-┌─────────────────────────────────────────┐
-│                  name                   │
-│                 varchar                 │
-├─────────────────────────────────────────┤
-│ bdline_ua_lep_diss_tbl                  │
-│ bdline_ua_lep_tbl                       │
-│ ...                                     │
-│ la_ghg_emissions_weca_vw                │
-│ weca_lep_la_vw                          │
-│ datasets_catalogue                      │
-│ columns_catalogue                       │
-└─────────────────────────────────────────┘
-```
+| name |
+|------|
+| bdline_ua_lep_diss_tbl |
+| bdline_ua_lep_tbl |
+| ... |
+| la_ghg_emissions_weca_vw |
+| weca_lep_la_vw |
+| datasets_catalogue |
+| columns_catalogue |
 
 ## Basic SQL Queries
 
@@ -434,17 +429,12 @@ WHERE CAUTH25NM = 'West of England'
 ORDER BY population DESC;
 ```
 
-```text
-┌────────────────────────────────┬────────────┐
-│            LAD25NM             │ population │
-│            varchar             │   int64    │
-├────────────────────────────────┼────────────┤
-│ Bristol, City of               │     472000 │
-│ South Gloucestershire          │     285000 │
-│ North Somerset                 │     217000 │
-│ Bath and North East Somerset   │     197000 │
-└────────────────────────────────┴────────────┘
-```
+| LAD25NM | population |
+|---------|----------:|
+| Bristol, City of | 472000 |
+| South Gloucestershire | 285000 |
+| North Somerset | 217000 |
+| Bath and North East Somerset | 197000 |
 
 **Aggregate with GROUP BY:**
 
@@ -491,16 +481,12 @@ SELECT DISTINCT local_authority_code, local_authority_name
 FROM lake.la_ghg_emissions_weca_vw;
 ```
 
-```text
-┌──────────────────────┬────────────────────────────────┐
-│ local_authority_code │     local_authority_name        │
-├──────────────────────┼────────────────────────────────┤
-│ E06000022            │ Bath and North East Somerset    │
-│ E06000023            │ Bristol, City of                │
-│ E06000024            │ North Somerset                  │
-│ E06000025            │ South Gloucestershire           │
-└──────────────────────┴────────────────────────────────┘
-```
+| local_authority_code | local_authority_name |
+|----------------------|----------------------|
+| E06000022 | Bath and North East Somerset |
+| E06000023 | Bristol, City of |
+| E06000024 | North Somerset |
+| E06000025 | South Gloucestershire |
 
 ## Querying the Data Catalogue
 
@@ -514,16 +500,12 @@ FROM lake.datasets_catalogue
 ORDER BY type, name;
 ```
 
-```text
-┌──────────────────────────────────┬──────────────────────────────────┬─────────┬───────────┐
-│               name               │           description            │  type   │ row_count │
-├──────────────────────────────────┼──────────────────────────────────┼─────────┼───────────┤
-│ bdline_ua_lep_diss_tbl           │ Boundary line UA LEP dissolved   │ table   │         1 │
-│ ca_la_lookup_tbl                 │ Combined authority to local ...  │ table   │       106 │
-│ ...                              │ ...                              │ ...     │       ... │
-│ la_ghg_emissions_weca_vw         │ WECA-filtered subset of ...     │ view    │       ... │
-└──────────────────────────────────┴──────────────────────────────────┴─────────┴───────────┘
-```
+| name | description | type | row_count |
+|------|-------------|------|----------:|
+| bdline_ua_lep_diss_tbl | Boundary line UA LEP dissolved | table | 1 |
+| ca_la_lookup_tbl | Combined authority to local ... | table | 106 |
+| ... | ... | ... | ... |
+| la_ghg_emissions_weca_vw | WECA-filtered subset of ... | view | ... |
 
 **Explore columns for a specific table:**
 
