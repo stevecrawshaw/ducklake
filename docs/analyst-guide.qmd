@@ -24,40 +24,189 @@ execute:
 
 # Introduction
 
-<!-- Content: What this guide covers, who it's for, and the 10-minute promise.
-     Explain that WECA's shared data platform provides 18 curated datasets
-     accessible via R pins (primary), DuckLake SQL catalogue, and Python (appendix).
-     An unfamiliar analyst should be able to read their first dataset within 10 minutes. -->
+WECA's shared data platform provides **18 curated datasets** covering local authority lookups, greenhouse gas emissions, energy performance certificates, broadband coverage, IMD deprivation, business counts, and spatial boundaries. All data is stored on Amazon S3 and accessible through two complementary routes:
+
+- **Pins (R or Python):** Read datasets directly into data frames. Best for quick exploratory analysis, filtering, and visualisation.
+- **DuckLake (SQL via DuckDB CLI):** Query datasets with SQL, join across tables, use pre-built WECA-filtered views, and browse the data catalogue. Best for complex queries and when you need to work across multiple tables.
+
+Both routes read from the same underlying data. Choose whichever fits your workflow -- or use both.
+
+::: {.callout-tip}
+## The 10-minute promise
+If you follow the Prerequisites section below, you will be able to read your first dataset within 10 minutes.
+:::
+
+This guide covers everything you need: package installation, AWS credential setup, reading data via pins, querying the DuckLake catalogue with SQL, working with spatial data, and troubleshooting common issues. Python equivalents are provided in [Appendix A](#appendix-a-python-equivalents).
+
 
 # Prerequisites and Setup
 
-<!-- Content: Everything an analyst needs before accessing data.
-     This section ensures a complete zero-to-working setup. -->
+Before accessing data, you need three things: R packages, the DuckDB command-line tool (for SQL access), and AWS credentials. This section walks through each.
 
 ## R Packages
 
-<!-- Content: install.packages() for pins, arrow, sf, duckdb, DBI.
-     Note minimum versions. Mention tidyverse assumed. -->
+Install the core packages. This guide assumes you already have the tidyverse installed.
+
+```{r}
+install.packages(c("pins", "arrow", "sf", "duckdb", "DBI"))
+```
+
+| Package | Purpose |
+|---------|---------|
+| `pins` | Connect to the S3 board, list/read/download datasets |
+| `arrow` | Read parquet files (required for large and spatial datasets) |
+| `sf` | Handle spatial data (GeoParquet to sf objects) |
+| `duckdb` | DuckDB database driver for R (used for local queries) |
+| `DBI` | Database interface (works with duckdb) |
+
+: {tbl-colwidths="[20,80]"}
 
 ## DuckDB Installation
 
-<!-- Content: How to install DuckDB CLI (needed for DuckLake queries).
-     Note: R duckdb package (v1.4.4) lacks ducklake extension — CLI is required.
-     Download link and verification command. -->
+The DuckDB command-line interface (CLI) is required for querying the DuckLake catalogue. The R `duckdb` package (v1.4.4) does not include the `ducklake` extension, so SQL queries against the catalogue must be run through the CLI.
+
+1. Download the DuckDB CLI from <https://duckdb.org/docs/installation/>.
+2. Place the `duckdb` executable somewhere on your PATH.
+3. Verify installation:
+
+```{bash}
+duckdb --version
+```
+
+```text
+v1.4.1 (Groundhog Day)
+```
+
+::: {.callout-note}
+The DuckDB CLI is only needed for DuckLake SQL queries ([Section 5](#querying-the-ducklake-catalogue)). For reading data via pins, you only need the R packages above.
+:::
 
 ## AWS Credentials
 
-<!-- Content: Incorporate content from docs/analyst-aws-setup.md.
-     Cover: how to request access, configure credentials locally (~/.aws/credentials),
-     set default region (eu-west-2), verify connectivity with aws s3 ls. -->
+You need AWS credentials to access the shared S3 bucket (`stevecrawshaw-bucket`). Request an access key ID and secret access key from the data owner (distributed via Keeper).
+
+### Step 1: Create the credentials file
+
+Create the file at:
+
+- **Windows:** `C:\Users\USERNAME\.aws\credentials`
+- **Linux/Mac:** `~/.aws/credentials`
+
+If the `.aws` directory does not exist, create it first. Paste the following content, replacing the placeholders with your actual keys:
+
+```ini
+[default]
+aws_access_key_id = <YOUR_ACCESS_KEY_ID>
+aws_secret_access_key = <YOUR_SECRET_ACCESS_KEY>
+```
+
+### Step 2: Create the config file
+
+Create the file at:
+
+- **Windows:** `C:\Users\USERNAME\.aws\config`
+- **Linux/Mac:** `~/.aws/config`
+
+Paste the following content:
+
+```ini
+[default]
+region = eu-west-2
+output = json
+```
+
+::: {.callout-warning}
+## Region must be eu-west-2
+The S3 bucket is in the `eu-west-2` (London) region. Using any other region will cause "Access Denied" errors or 301 redirects. Always set `region = eu-west-2`.
+:::
+
+### Step 3: Verify access
+
+Pick whichever tool you use day-to-day. A successful result from any one method confirms your credentials are working.
+
+**R (pins):**
+
+```{r}
+library(pins)
+board <- board_s3(bucket = "stevecrawshaw-bucket", region = "eu-west-2")
+pin_list(board)
+```
+
+```text
+ [1] "bdline_ua_lep_diss_tbl"             "bdline_ua_lep_tbl"
+ [3] "bdline_ua_weca_diss_tbl"            "bdline_ward_lep_tbl"
+ [5] "ca_boundaries_bgc_tbl"              "ca_la_lookup_tbl"
+ ...
+```
+
+**DuckDB CLI:**
+
+```{sql}
+INSTALL aws; LOAD aws;
+CREATE OR REPLACE SECRET (
+    TYPE s3, PROVIDER credential_chain,
+    CHAIN config, REGION 'eu-west-2'
+);
+SELECT * FROM glob('s3://stevecrawshaw-bucket/*');
+```
+
+**AWS CLI (optional):**
+
+```{bash}
+aws s3 ls s3://stevecrawshaw-bucket/
+```
+
+::: {.callout-tip}
+## Troubleshooting credentials
+If you get "Access Denied" or "No credentials" errors, see the [Troubleshooting](#troubleshooting) section. Common causes: wrong region, missing profile name `[default]`, or a `.txt` extension accidentally added by your text editor.
+:::
+
 
 # Available Datasets
 
-<!-- Content: Quick reference table of all 18 datasets + views.
-     Columns: name, description, type (non-spatial/spatial), row count, source.
-     Note: full details available by querying the DuckLake data catalogue
-     (datasets_catalogue and columns_catalogue tables).
-     Link forward to the "Querying the Data Catalogue" subsection. -->
+The platform provides 18 base tables and 12 pre-built views. The table below is a quick reference; for full column-level details, query the `datasets_catalogue` and `columns_catalogue` programmatically (see [Querying the Data Catalogue](#querying-the-data-catalogue)).
+
+## Base Tables
+
+| Name | Description | Spatial | Approx. Rows |
+|------|-------------|:-------:|-------------:|
+| `bdline_ua_lep_diss_tbl` | Boundary line UA LEP dissolved | Yes | 1 |
+| `bdline_ua_lep_tbl` | Boundary line UA LEP | Yes | 5 |
+| `bdline_ua_weca_diss_tbl` | Boundary line UA WECA dissolved | Yes | 1 |
+| `bdline_ward_lep_tbl` | Boundary line wards LEP | Yes | 70 |
+| `ca_boundaries_bgc_tbl` | Combined authority boundaries (BGC) | Yes | 11 |
+| `ca_la_lookup_tbl` | Combined authority to local authority lookup | -- | 106 |
+| `codepoint_open_lep_tbl` | Codepoint Open postcodes LEP | Yes | 49,000 |
+| `imd_2019_lsoa_lep_tbl` | IMD 2019 by LSOA (LEP area) | -- | 700 |
+| `la_broadband_coverage_tbl` | Local authority broadband coverage | -- | 440 |
+| `la_business_counts_tbl` | Local authority business counts | -- | 3,600 |
+| `la_ghg_emissions_tbl` | Local authority greenhouse gas emissions | -- | 27,000 |
+| `la_house_price_earnings_ratio_tbl` | House price to earnings ratio by LA | -- | 2,100 |
+| `la_imd_2019_summary_tbl` | IMD 2019 summary by local authority | -- | 800 |
+| `lsoa_2021_lep_tbl` | LSOA 2021 boundaries (LEP area) | Yes | 700 |
+| `oa_2021_lsoa_lep_lookup_tbl` | OA 2021 to LSOA LEP lookup | -- | 3,300 |
+| `open_uprn_lep_tbl` | Open UPRN addresses (LEP area) | Yes | 700,000 |
+| `raw_domestic_epc_certificates_tbl` | Domestic EPC certificates (raw) | -- | 19,000,000 |
+| `uk_hpi_tbl` | UK House Price Index | -- | 100,000 |
+
+: {tbl-colwidths="[30,40,10,20]"}
+
+## Views (WECA-filtered)
+
+The catalogue includes 12 views, most of which pre-filter data to the four WECA local authorities (Bath and North East Somerset, Bristol, North Somerset, South Gloucestershire). Views have names ending in `_weca_vw` or `_source_vw`.
+
+| Name | Description |
+|------|-------------|
+| `la_ghg_emissions_weca_vw` | GHG emissions filtered to WECA LAs |
+| `la_broadband_coverage_weca_vw` | Broadband coverage filtered to WECA LAs |
+| `la_business_counts_weca_vw` | Business counts filtered to WECA LAs |
+| `weca_lep_la_vw` | WECA LEP local authority lookup (4 rows) |
+
+: {tbl-colwidths="[40,60]"}
+
+::: {.callout-note}
+Row counts are approximate. For exact current counts, query `datasets_catalogue` in DuckLake (see [Section 5.5](#querying-the-data-catalogue)).
+:::
 
 # Accessing Data via Pins
 
