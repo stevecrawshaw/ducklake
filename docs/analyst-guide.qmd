@@ -210,154 +210,745 @@ Row counts are approximate. For exact current counts, query `datasets_catalogue`
 
 # Accessing Data via Pins
 
-<!-- Content: Primary data access method for R analysts.
-     All examples use the pins package with S3 board. -->
+The `pins` package is the primary way to read data from the platform into R. All datasets are stored as versioned parquet files on S3.
 
 ## Creating a Board
 
-<!-- Content: board_s3() with bucket, prefix, region, versioned params.
-     Bucket: stevecrawshaw-bucket, prefix: pins/, region: eu-west-2. -->
+Connect to the S3 board. You only need to do this once per session.
+
+```{r}
+library(pins)
+
+board <- board_s3(
+  bucket = "stevecrawshaw-bucket",
+  prefix = "pins/",
+  region = "eu-west-2",
+  versioned = TRUE
+)
+```
+
+The `versioned = TRUE` parameter means you can access previous versions of datasets if needed.
 
 ## Listing Datasets
 
-<!-- Content: pin_list(board) to see all available datasets.
-     Show expected output (list of 18+ pin names). -->
+See all available datasets on the board:
+
+```{r}
+pin_list(board)
+```
+
+```text
+ [1] "bdline_ua_lep_diss_tbl"             "bdline_ua_lep_tbl"
+ [3] "bdline_ua_weca_diss_tbl"            "bdline_ward_lep_tbl"
+ [5] "ca_boundaries_bgc_tbl"              "ca_la_lookup_tbl"
+ [7] "codepoint_open_lep_tbl"             "columns_catalogue"
+ [9] "datasets_catalogue"                 "imd_2019_lsoa_lep_tbl"
+[11] "la_broadband_coverage_tbl"          "la_business_counts_tbl"
+[13] "la_ghg_emissions_tbl"               "la_house_price_earnings_ratio_tbl"
+[15] "la_imd_2019_summary_tbl"            "lsoa_2021_lep_tbl"
+[17] "oa_2021_lsoa_lep_lookup_tbl"        "open_uprn_lep_tbl"
+[19] "raw_domestic_epc_certificates_tbl"  "uk_hpi_tbl"
+```
 
 ## Reading a Dataset
 
-<!-- Content: pin_read(board, "table_name") for standard tables.
-     Use ca_la_lookup_tbl as first example (small, quick).
-     Show glimpse/str of result. -->
+Read a dataset directly into an R data frame with `pin_read()`. Start with `ca_la_lookup_tbl` -- it is small (106 rows) and loads instantly.
+
+```{r}
+df <- pin_read(board, "ca_la_lookup_tbl")
+head(df)
+```
+
+```text
+  LAD25CD              LAD25NM  CAUTH25CD                CAUTH25NM population
+1 E06000022 Bath and North ...  E47000009 West of England         197...
+2 E06000023           Bristol   E47000009 West of England         472...
+3 E06000024      North Somerset E47000009 West of England         217...
+4 E06000025  South Gloucest...  E47000009 West of England         285...
+5 E08000025        Birmingham   E47000007 West Midlands          1144...
+6 E08000026            Coventry E47000007 West Midlands           345...
+```
+
+```{r}
+str(df)
+```
+
+```text
+'data.frame':	106 obs. of  5 variables:
+ $ LAD25CD   : chr  "E06000022" "E06000023" "E06000024" ...
+ $ LAD25NM   : chr  "Bath and North East Somerset" "Bristol, City of" ...
+ $ CAUTH25CD : chr  "E47000009" "E47000009" "E47000009" ...
+ $ CAUTH25NM : chr  "West of England" "West of England" ...
+ $ population: num  197... 472... 217... 285... 1144... ...
+```
 
 ## Accessing Metadata
 
-<!-- Content: pin_meta(board, "table_name") for descriptions and column info.
-     Show meta$title, meta$description, meta$user$columns.
-     Explain that metadata comes from the data catalogue. -->
+Every dataset carries metadata including a description and column-level documentation:
+
+```{r}
+meta <- pin_meta(board, "ca_la_lookup_tbl")
+meta$title
+```
+
+```text
+[1] "Combined authority to local authority lookup"
+```
+
+```{r}
+meta$user$columns
+```
+
+```text
+$LAD25CD
+[1] "2025 Local Authority District code"
+
+$LAD25NM
+[1] "2025 Local Authority District name"
+
+$CAUTH25CD
+[1] "2025 Combined Authority code"
+
+$CAUTH25NM
+[1] "2025 Combined Authority name"
+
+$population
+[1] "Mid-year population estimate"
+```
+
+Column descriptions come from the data catalogue and are embedded in each pin's metadata. Use `meta$user$column_types` to see the data types.
 
 ## Large Datasets
 
-<!-- Content: The EPC table is too large for pin_read (multi-file pin).
-     Use pin_download() + arrow::read_parquet() or arrow::open_dataset() instead.
-     Show the fallback pattern with raw_domestic_epc_certificates_tbl. -->
+The `raw_domestic_epc_certificates_tbl` dataset contains approximately 19 million rows and is stored as a multi-file pin (multiple parquet files). For this table, `pin_read()` may be slow or fail. Use `arrow::open_dataset()` instead:
+
+```{r}
+library(arrow)
+
+# Download the parquet files
+paths <- pin_download(board, "raw_domestic_epc_certificates_tbl")
+
+# Open as an Arrow dataset (lazy -- does not load into memory)
+ds <- open_dataset(paths)
+
+# Query efficiently with dplyr
+library(dplyr)
+bristol_epcs <- ds |>
+  filter(local_authority == "Bristol, City of") |>
+  select(address1, current_energy_rating, potential_energy_rating) |>
+  collect()
+```
+
+::: {.callout-tip}
+For any dataset, you can use `pin_download()` followed by `arrow::read_parquet()` if you prefer working with Arrow tables directly. This is also the required approach for spatial datasets (see [Section 6](#working-with-spatial-data)).
+:::
+
 
 # Querying the DuckLake Catalogue
 
-<!-- Content: SQL-based access via DuckDB CLI.
-     For analysts comfortable with SQL, or when complex queries/joins are needed. -->
+DuckLake provides SQL access to the same datasets. This is useful when you need to join tables, run aggregate queries, use pre-built WECA views, or browse the data catalogue. All DuckLake SQL runs through the DuckDB CLI (not the R duckdb package).
 
 ## Installing Extensions
 
-<!-- Content: INSTALL ducklake; LOAD ducklake;
-     INSTALL httpfs; LOAD httpfs; (for S3 access)
-     Note these are one-time installations. -->
+Open the DuckDB CLI and install the required extensions. This only needs to be done once -- extensions are cached locally.
+
+```{sql}
+INSTALL ducklake;
+LOAD ducklake;
+
+INSTALL httpfs;
+LOAD httpfs;
+
+INSTALL aws;
+LOAD aws;
+```
+
+For spatial queries, also install:
+
+```{sql}
+INSTALL spatial;
+LOAD spatial;
+```
 
 ## Attaching the Catalogue
 
-<!-- Content: CREATE SECRET for AWS credentials.
-     ATTACH 'ducklake:data/mca_env.ducklake' AS lake syntax.
-     Explain: analysts must have the .ducklake file locally (clone the repo).
-     DATA_PATH points to S3 where actual data lives. -->
+Each time you open a DuckDB CLI session, you need to create an S3 credential and attach the catalogue.
+
+```{sql}
+-- Create S3 credential (uses your ~/.aws/credentials file)
+CREATE SECRET (TYPE s3, REGION 'eu-west-2', PROVIDER credential_chain);
+
+-- Attach the DuckLake catalogue
+ATTACH 'ducklake:data/mca_env.ducklake' AS lake
+  (READ_ONLY, DATA_PATH 's3://stevecrawshaw-bucket/ducklake/data/');
+```
+
+::: {.callout-important}
+## You need the .ducklake file locally
+The file `data/mca_env.ducklake` is a small metadata file that must be on your local machine. Clone the repository to get it:
+
+```bash
+git clone <repo-url>
+cd ducklake
+```
+
+The `.ducklake` file is only metadata (a few KB). The actual data lives on S3 and is fetched transparently when you run queries.
+:::
+
+To see all available tables and views:
+
+```{sql}
+USE lake;
+SHOW TABLES;
+```
+
+```text
+┌─────────────────────────────────────────┐
+│                  name                   │
+│                 varchar                 │
+├─────────────────────────────────────────┤
+│ bdline_ua_lep_diss_tbl                  │
+│ bdline_ua_lep_tbl                       │
+│ ...                                     │
+│ la_ghg_emissions_weca_vw                │
+│ weca_lep_la_vw                          │
+│ datasets_catalogue                      │
+│ columns_catalogue                       │
+└─────────────────────────────────────────┘
+```
 
 ## Basic SQL Queries
 
-<!-- Content: SELECT, WHERE, JOIN, GROUP BY examples using DuckLake tables.
-     Use familiar tables (ca_la_lookup_tbl, la_ghg_emissions_tbl).
-     Show practical queries analysts would actually run. -->
+**Select all rows from a small table:**
+
+```{sql}
+SELECT * FROM lake.ca_la_lookup_tbl LIMIT 5;
+```
+
+**Filter with WHERE:**
+
+```{sql}
+SELECT LAD25NM, population
+FROM lake.ca_la_lookup_tbl
+WHERE CAUTH25NM = 'West of England'
+ORDER BY population DESC;
+```
+
+```text
+┌────────────────────────────────┬────────────┐
+│            LAD25NM             │ population │
+│            varchar             │   int64    │
+├────────────────────────────────┼────────────┤
+│ Bristol, City of               │     472000 │
+│ South Gloucestershire          │     285000 │
+│ North Somerset                 │     217000 │
+│ Bath and North East Somerset   │     197000 │
+└────────────────────────────────┴────────────┘
+```
+
+**Aggregate with GROUP BY:**
+
+```{sql}
+SELECT territorial_emissions_sector,
+       ROUND(SUM(territorial_emissions_kt_co2e), 1) AS total_kt
+FROM lake.la_ghg_emissions_tbl
+WHERE local_authority_name IN ('Bristol, City of', 'Bath and North East Somerset',
+                                'North Somerset', 'South Gloucestershire')
+  AND year = 2021
+GROUP BY territorial_emissions_sector
+ORDER BY total_kt DESC;
+```
+
+**Join tables:**
+
+```{sql}
+SELECT l.LAD25NM, g.year,
+       ROUND(SUM(g.territorial_emissions_kt_co2e), 1) AS total_emissions
+FROM lake.la_ghg_emissions_tbl g
+JOIN lake.ca_la_lookup_tbl l ON g.local_authority_code = l.LAD25CD
+WHERE l.CAUTH25NM = 'West of England'
+GROUP BY l.LAD25NM, g.year
+ORDER BY g.year DESC, total_emissions DESC
+LIMIT 8;
+```
 
 ## Using Views
 
-<!-- Content: WECA-filtered views (e.g., la_ghg_emissions_weca_vw).
-     Explain views pre-filter to WECA local authorities.
-     SHOW TABLES to list available views. -->
+WECA-filtered views pre-filter data to the four WECA local authorities, saving you from writing the same WHERE clause repeatedly.
+
+```{sql}
+-- Instead of filtering manually:
+SELECT * FROM lake.la_ghg_emissions_tbl
+WHERE local_authority_code IN ('E06000022','E06000023','E06000024','E06000025');
+
+-- Use the WECA view directly:
+SELECT * FROM lake.la_ghg_emissions_weca_vw;
+```
+
+```{sql}
+-- List distinct authorities in a WECA view
+SELECT DISTINCT local_authority_code, local_authority_name
+FROM lake.la_ghg_emissions_weca_vw;
+```
+
+```text
+┌──────────────────────┬────────────────────────────────┐
+│ local_authority_code │     local_authority_name        │
+├──────────────────────┼────────────────────────────────┤
+│ E06000022            │ Bath and North East Somerset    │
+│ E06000023            │ Bristol, City of                │
+│ E06000024            │ North Somerset                  │
+│ E06000025            │ South Gloucestershire           │
+└──────────────────────┴────────────────────────────────┘
+```
 
 ## Querying the Data Catalogue
 
-<!-- Content: SELECT from datasets_catalogue and columns_catalogue.
-     Show how to discover dataset descriptions, column meanings, row counts.
-     This is the programmatic alternative to the quick reference table above. -->
+The catalogue includes two metadata tables that describe every dataset and column programmatically.
+
+**List all datasets with descriptions and row counts:**
+
+```{sql}
+SELECT name, description, type, row_count
+FROM lake.datasets_catalogue
+ORDER BY type, name;
+```
+
+```text
+┌──────────────────────────────────┬──────────────────────────────────┬─────────┬───────────┐
+│               name               │           description            │  type   │ row_count │
+├──────────────────────────────────┼──────────────────────────────────┼─────────┼───────────┤
+│ bdline_ua_lep_diss_tbl           │ Boundary line UA LEP dissolved   │ table   │         1 │
+│ ca_la_lookup_tbl                 │ Combined authority to local ...  │ table   │       106 │
+│ ...                              │ ...                              │ ...     │       ... │
+│ la_ghg_emissions_weca_vw         │ WECA-filtered subset of ...     │ view    │       ... │
+└──────────────────────────────────┴──────────────────────────────────┴─────────┴───────────┘
+```
+
+**Explore columns for a specific table:**
+
+```{sql}
+SELECT column_name, data_type, description, example_1
+FROM lake.columns_catalogue
+WHERE table_name = 'la_ghg_emissions_tbl'
+ORDER BY column_name;
+```
+
+**Find spatial datasets:**
+
+```{sql}
+SELECT name, geometry_type, crs, row_count
+FROM lake.datasets_catalogue
+WHERE geometry_type IS NOT NULL;
+```
 
 ## Time Travel
 
-<!-- Content: Brief syntax example — not a full section.
-     SELECT ... FROM table AT (VERSION => N) syntax.
-     Mention 90-day snapshot retention policy. -->
+DuckLake keeps snapshots of your data. You can query a table as it existed at a previous version:
+
+```{sql}
+-- Query the table at version 1
+SELECT COUNT(*) FROM lake.ca_la_lookup_tbl AT (VERSION => 1);
+
+-- List available snapshots
+SELECT * FROM lake.snapshots() ORDER BY snapshot_id DESC LIMIT 5;
+```
+
+Snapshots are retained for 90 days and then automatically cleaned up. Time travel is useful for auditing changes or recovering from accidental modifications.
+
 
 # Working with Spatial Data
 
-<!-- Content: 8 spatial datasets available as GeoParquet pins.
-     Important: do NOT use sfarrow (fails on DuckDB GeoParquet). -->
+Eight of the 18 datasets contain geometry columns and are stored as GeoParquet files on S3. These cover boundaries (UA, ward, LSOA), postcodes (Codepoint Open), addresses (UPRN), and combined authority areas.
+
+::: {.callout-warning}
+## Do not use sfarrow
+The `sfarrow` package fails on GeoParquet files produced by DuckDB because DuckDB does not write CRS metadata into the GeoParquet `geo` key. Always use the `arrow` + `sf` approach described below.
+:::
 
 ## Reading GeoParquet Pins
 
-<!-- Content: pin_download() to get GeoParquet file path.
-     arrow::read_parquet() to read (not pin_read, not sfarrow). -->
+Spatial pins must be read with `pin_download()` followed by `arrow::read_parquet()`, not with `pin_read()`:
+
+```{r}
+library(pins)
+library(arrow)
+
+board <- board_s3(
+  bucket = "stevecrawshaw-bucket",
+  prefix = "pins/",
+  region = "eu-west-2",
+  versioned = TRUE
+)
+
+# Download the GeoParquet file
+pin_path <- pin_download(board, "bdline_ua_lep_tbl")
+
+# Read with arrow
+arrow_tbl <- arrow::read_parquet(pin_path, as_data_frame = FALSE)
+```
 
 ## Converting to sf Objects
 
-<!-- Content: sf::st_as_sf(as.data.frame(arrow_tbl)) pattern.
-     Explain why this two-step process is needed. -->
+Convert the Arrow table to an `sf` object in two steps:
+
+```{r}
+library(sf)
+
+sf_obj <- sf::st_as_sf(as.data.frame(arrow_tbl))
+```
+
+The two-step process (`as.data.frame()` then `st_as_sf()`) is needed because `sf` expects a data frame with a geometry column, and Arrow tables need explicit conversion.
+
+```{r}
+sf_obj
+```
+
+```text
+Simple feature collection with 5 features and 2 fields
+Geometry type: MULTIPOLYGON
+Dimension:     XY
+Bounding box:  xmin: 333099 ymin: 155782.9 xmax: 389539.2 ymax: 199597.7
+CRS:           NA
+  name         area_ha                       shape
+1 Bath and ... 35089.1 MULTIPOLYGON (((368338.4 ...
+2 Bristol, ... 11001.7 MULTIPOLYGON (((357291.7 ...
+...
+```
 
 ## Setting CRS
 
-<!-- Content: CRITICAL — DuckDB GeoParquet does not embed CRS metadata.
-     sf will show CRS as NA. Analysts MUST set CRS explicitly.
-     Most spatial tables use EPSG:27700 (British National Grid).
-     ca_boundaries_bgc_tbl uses EPSG:4326 (WGS84).
-     Show sf::st_set_crs() and how to check pin metadata for correct CRS. -->
+Notice that the CRS shows as **NA** above. DuckDB does not embed CRS metadata into GeoParquet files, so you **must** set it explicitly after reading.
+
+```{r}
+sf_obj <- sf::st_set_crs(sf_obj, 27700)
+```
+
+Most spatial tables use **EPSG:27700** (British National Grid). The one exception is `ca_boundaries_bgc_tbl`, which uses **EPSG:4326** (WGS84 latitude/longitude).
+
+| Dataset | CRS |
+|---------|-----|
+| `bdline_ua_lep_diss_tbl` | EPSG:27700 |
+| `bdline_ua_lep_tbl` | EPSG:27700 |
+| `bdline_ua_weca_diss_tbl` | EPSG:27700 |
+| `bdline_ward_lep_tbl` | EPSG:27700 |
+| `ca_boundaries_bgc_tbl` | **EPSG:4326** |
+| `codepoint_open_lep_tbl` | EPSG:27700 |
+| `lsoa_2021_lep_tbl` | EPSG:27700 |
+| `open_uprn_lep_tbl` | EPSG:27700 |
+
+: {tbl-colwidths="[50,50]"}
+
+You can also check the correct CRS from the pin metadata:
+
+```{r}
+meta <- pin_meta(board, "bdline_ua_lep_tbl")
+meta$user$crs
+```
+
+```text
+[1] "EPSG:27700"
+```
 
 ## Plotting a Quick Map
 
-<!-- Content: Simple plot(sf_obj["column"]) example.
-     Optional: ggplot2 + geom_sf for a nicer map.
-     Use bdline_ua_lep_tbl or similar recognisable boundary. -->
+Once the CRS is set, you can plot directly:
+
+```{r}
+plot(sf_obj["name"])
+```
+
+For a more polished map using ggplot2:
+
+```{r}
+library(ggplot2)
+
+ggplot(sf_obj) +
+  geom_sf(aes(fill = name), colour = "white") +
+  theme_minimal() +
+  labs(title = "WECA LEP Local Authorities",
+       fill = "Authority") +
+  theme(legend.position = "bottom")
+```
+
 
 # Troubleshooting
 
-<!-- Content: Dedicated troubleshooting section covering common issues.
-     - AWS credential errors (expired, wrong region, not configured)
-     - "file not found" when attaching DuckLake (need .ducklake file locally)
-     - sfarrow errors on GeoParquet (use arrow + sf instead)
-     - CRS shows as NA or OGC:CRS84 (must set explicitly)
-     - Python pin_read fails on EPC table (multi-file pin — use arrow fallback)
-     - DuckLake extension not available in R (use DuckDB CLI)
-     - s3fs version warning in Python (cosmetic, can ignore) -->
+## "Access Denied" or region errors
+
+**Symptom:** S3 operations fail with "Access Denied", 403, or 301 redirect errors.
+
+**Cause:** The region is not set to `eu-west-2`, or credentials are missing/expired.
+
+**Fix:**
+
+1. Check `~/.aws/config` contains `region = eu-west-2`.
+2. In DuckDB, always specify `REGION 'eu-west-2'` in the secret definition.
+3. Verify your credentials have not expired -- contact the data owner for new keys if needed.
+
+## "File not found" when attaching DuckLake
+
+**Symptom:** `ATTACH 'ducklake:data/mca_env.ducklake'` fails with a file-not-found error.
+
+**Cause:** The `.ducklake` catalogue file must be on your local machine. It is not hosted on S3.
+
+**Fix:** Clone the repository and run DuckDB from the project root directory:
+
+```bash
+git clone <repo-url>
+cd ducklake
+duckdb
+```
+
+## CRS shows as NA or OGC:CRS84
+
+**Symptom:** After reading a spatial dataset, `sf::st_crs()` returns NA, or geopandas shows `OGC:CRS84`.
+
+**Cause:** DuckDB does not embed CRS metadata into GeoParquet files.
+
+**Fix:** Set the CRS explicitly after reading. Most tables use EPSG:27700; `ca_boundaries_bgc_tbl` uses EPSG:4326. See the [CRS table](#setting-crs) above.
+
+## sfarrow fails on GeoParquet
+
+**Symptom:** `sfarrow::st_read_parquet()` throws an error about missing CRS or `geo` key.
+
+**Cause:** sfarrow requires full GeoParquet metadata including CRS, which DuckDB does not write.
+
+**Fix:** Use `arrow::read_parquet()` followed by `sf::st_as_sf()` instead. Do not use sfarrow with these files.
+
+## Python board_s3 path format
+
+**Symptom:** Python `board_s3()` fails with connection errors or "bucket not found".
+
+**Cause:** Python `pins` uses a different path format from R.
+
+**Fix:** Use `board_s3("stevecrawshaw-bucket/pins", versioned=True)` -- the bucket and prefix are combined in a single string. Do not pass them as separate parameters.
+
+## Python pin_read fails on EPC table
+
+**Symptom:** `board.pin_read("raw_domestic_epc_certificates_tbl")` throws an error in Python.
+
+**Cause:** The EPC table is a multi-file pin (exported in chunks). The Python `pins` library cannot handle multi-file pins with `pin_read`.
+
+**Fix:** Use `pyarrow` directly:
+
+```python
+import pyarrow.dataset as ds
+paths = board.pin_download("raw_domestic_epc_certificates_tbl")
+dataset = ds.dataset(paths, format="parquet")
+df = dataset.to_table().to_pandas()
+```
+
+## DuckLake extension not available in R
+
+**Symptom:** `dbExecute(con, "INSTALL ducklake")` fails from the R `duckdb` package.
+
+**Cause:** The R `duckdb` package (v1.4.4) does not include the `ducklake` extension.
+
+**Fix:** Use the DuckDB CLI for all DuckLake queries. For data frame access, use `pins` instead -- you do not need DuckLake for reading data into R.
+
 
 # Support and Contact
 
-<!-- Content: Who to contact for data platform questions.
-     Slack channel: [#data-platform] (placeholder — fill before publishing).
-     Named contact: [Data Platform Team] (placeholder).
-     GitHub repo link for reporting issues. -->
+::: {.callout-note}
+## Update before distributing
+Replace the placeholders below with your team's actual contact details before sharing this guide.
+:::
+
+- **Slack channel:** [#data-platform]
+- **Contact:** [Data Platform Team]
+- **Repository:** Report issues or request new datasets via the project GitHub repository.
+- **AWS access requests:** Contact the data owner to receive credentials via Keeper.
+
+For urgent data access issues, check the [Troubleshooting](#troubleshooting) section first.
+
 
 # Appendix A: Python Equivalents {.appendix}
 
-<!-- Content: Python versions of the key R examples above.
-     For analysts who prefer Python or need to integrate with Python workflows. -->
+This appendix provides Python equivalents of the key R examples above. Python is a secondary access path -- R is the primary supported language.
 
 ## Pins Access
 
-<!-- Content: board_s3("stevecrawshaw-bucket/pins", versioned=True) — note the
-     different path format from R (bucket/prefix, no separate params).
-     board.pin_list(), board.pin_read(), board.pin_meta().
-     Note: pin_read fails on multi-file pins — use arrow fallback. -->
+::: {.callout-important}
+## Python path format differs from R
+In Python, `board_s3()` takes a single string `"bucket/prefix"` rather than separate `bucket` and `prefix` parameters. Note the absence of a trailing slash.
+:::
+
+```{python}
+import os
+os.environ.setdefault("AWS_DEFAULT_REGION", "eu-west-2")
+
+from pins import board_s3
+
+# Create board -- note the "bucket/prefix" format (no trailing slash)
+board = board_s3("stevecrawshaw-bucket/pins", versioned=True)
+
+# List datasets
+board.pin_list()
+```
+
+```text
+['bdline_ua_lep_diss_tbl', 'bdline_ua_lep_tbl', 'ca_la_lookup_tbl', ...]
+```
+
+```{python}
+# Read a dataset
+df = board.pin_read("ca_la_lookup_tbl")
+print(df.head())
+```
+
+```text
+     LAD25CD                       LAD25NM  CAUTH25CD          CAUTH25NM  population
+0  E06000022  Bath and North East Somerset  E47000009  West of England       197...
+1  E06000023            Bristol, City of    E47000009  West of England       472...
+2  E06000024              North Somerset    E47000009  West of England       217...
+...
+```
+
+```{python}
+# Read metadata
+meta = board.pin_meta("ca_la_lookup_tbl")
+print(meta.title)
+print(meta.user["columns"])
+```
+
+::: {.callout-warning}
+`pin_read()` fails on multi-file pins (e.g., the EPC table). Use `pyarrow.dataset` as shown in the [Troubleshooting](#python-pin_read-fails-on-epc-table) section.
+:::
 
 ## DuckLake Queries
 
-<!-- Content: Python DuckDB connection for SQL queries.
-     import duckdb; conn = duckdb.connect()
-     Same SQL as the R/CLI examples above.
-     INSTALL/LOAD ducklake, ATTACH, SELECT. -->
+You can run DuckLake SQL from Python using the `duckdb` package:
+
+```{python}
+import duckdb
+
+conn = duckdb.connect()
+
+# Install and load extensions
+conn.execute("INSTALL ducklake; LOAD ducklake;")
+conn.execute("INSTALL httpfs; LOAD httpfs;")
+conn.execute("INSTALL aws; LOAD aws;")
+
+# Create S3 credential
+conn.execute("CREATE SECRET (TYPE s3, REGION 'eu-west-2', PROVIDER credential_chain);")
+
+# Attach the DuckLake catalogue
+conn.execute("""
+    ATTACH 'ducklake:data/mca_env.ducklake' AS lake
+    (READ_ONLY, DATA_PATH 's3://stevecrawshaw-bucket/ducklake/data/');
+""")
+
+# Query
+df = conn.execute("SELECT * FROM lake.ca_la_lookup_tbl LIMIT 5").fetchdf()
+print(df)
+```
+
+::: {.callout-note}
+Unlike R, the Python `duckdb` package does support the `ducklake` extension. You can run DuckLake queries directly from Python without the CLI.
+:::
 
 ## Spatial Data with geopandas
 
-<!-- Content: geopandas.read_parquet() for GeoParquet pins.
-     CRS may show as OGC:CRS84 — override with set_crs("EPSG:27700", allow_override=True).
-     Quick plot with gdf.plot(). -->
+```{python}
+import os
+os.environ.setdefault("AWS_DEFAULT_REGION", "eu-west-2")
+
+from pins import board_s3
+import geopandas as gpd
+
+board = board_s3("stevecrawshaw-bucket/pins", versioned=True)
+
+# Download and read GeoParquet
+path = board.pin_download("bdline_ua_lep_tbl")
+gdf = gpd.read_parquet(path[0])
+
+# CRS may show as OGC:CRS84 -- override to the correct CRS
+gdf = gdf.set_crs("EPSG:27700", allow_override=True)
+
+# Quick plot
+gdf.plot(column="name", legend=True)
+```
+
+::: {.callout-warning}
+geopandas may report the CRS as `OGC:CRS84` when GeoParquet lacks CRS metadata. Always use `set_crs()` with `allow_override=True` to set the correct CRS.
+:::
+
 
 # Appendix B: SQL Quick Reference {.appendix}
 
-<!-- Content: Brief SQL primer for analysts who know R but not SQL.
-     Cover: SELECT, FROM, WHERE, JOIN, GROUP BY, ORDER BY, LIMIT.
-     Use DuckLake table examples throughout.
-     Not a full SQL course — just enough to query the catalogue effectively. -->
+A brief SQL primer for analysts who are familiar with R but new to SQL. All examples use DuckLake tables.
+
+**SELECT -- choose columns:**
+
+```{sql}
+SELECT LAD25NM, population
+FROM lake.ca_la_lookup_tbl;
+```
+
+R equivalent: `df |> select(LAD25NM, population)`
+
+**WHERE -- filter rows:**
+
+```{sql}
+SELECT LAD25NM, population
+FROM lake.ca_la_lookup_tbl
+WHERE CAUTH25NM = 'West of England';
+```
+
+R equivalent: `df |> filter(CAUTH25NM == "West of England")`
+
+**ORDER BY -- sort results:**
+
+```{sql}
+SELECT LAD25NM, population
+FROM lake.ca_la_lookup_tbl
+ORDER BY population DESC;
+```
+
+R equivalent: `df |> arrange(desc(population))`
+
+**LIMIT -- return a fixed number of rows:**
+
+```{sql}
+SELECT * FROM lake.la_ghg_emissions_tbl LIMIT 10;
+```
+
+R equivalent: `df |> head(10)` or `df |> slice_head(n = 10)`
+
+**GROUP BY -- aggregate:**
+
+```{sql}
+SELECT CAUTH25NM, COUNT(*) AS n_las, SUM(population) AS total_pop
+FROM lake.ca_la_lookup_tbl
+GROUP BY CAUTH25NM
+ORDER BY total_pop DESC;
+```
+
+R equivalent: `df |> group_by(CAUTH25NM) |> summarise(n_las = n(), total_pop = sum(population))`
+
+**JOIN -- combine tables:**
+
+```{sql}
+SELECT l.LAD25NM, g.year, g.territorial_emissions_kt_co2e
+FROM lake.la_ghg_emissions_tbl g
+JOIN lake.ca_la_lookup_tbl l
+  ON g.local_authority_code = l.LAD25CD
+WHERE l.CAUTH25NM = 'West of England'
+  AND g.year = 2021;
+```
+
+R equivalent: `left_join(ghg, lookup, by = c("local_authority_code" = "LAD25CD"))`
+
+**Common aggregate functions:**
+
+| SQL | R equivalent | Description |
+|-----|-------------|-------------|
+| `COUNT(*)` | `n()` | Number of rows |
+| `SUM(col)` | `sum(col)` | Total |
+| `AVG(col)` | `mean(col)` | Average |
+| `MIN(col)` | `min(col)` | Minimum |
+| `MAX(col)` | `max(col)` | Maximum |
+| `ROUND(col, 2)` | `round(col, 2)` | Round to N decimals |
+
+: {tbl-colwidths="[20,25,55]"}
