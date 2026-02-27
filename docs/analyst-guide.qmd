@@ -656,10 +656,9 @@ df = dataset.to_table().to_pandas()
 Replace the placeholders below with your team's actual contact details before sharing this guide.
 :::
 
-- **Slack channel:** [#data-platform]
-- **Contact:** [Data Platform Team]
-- **Repository:** Report issues or request new datasets via the project GitHub repository.
-- **AWS access requests:** Contact the data owner to receive credentials via Keeper.
+- **Contact:** Steve Crawshaw
+- **Repository:** Report issues or request new datasets via the project [GitHub repository](https://github.com/stevecrawshaw/ducklake).
+- **AWS access requests:** Contact the Steve to receive credentials.
 
 For urgent data access issues, check the [Troubleshooting](#troubleshooting) section first.
 
