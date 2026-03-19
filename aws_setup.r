@@ -2,7 +2,7 @@
 # aws credentials are in .aws and keeper
 #
 
-pacman::p_load(aws.s3, pins, paws.storage, arrow)
+pacman::p_load(aws.s3, pins, paws.storage, arrow, tidyverse)
 
 bucketlist()
 
@@ -15,6 +15,8 @@ board <- board_s3(
 
 # Read the parquet file from S3
 df <- read_parquet("s3://stevecrawshaw-bucket/imd2025_england_lsoa21.parquet")
+
+df |> glimpse()
 
 # Write it as a pin
 board %>%
