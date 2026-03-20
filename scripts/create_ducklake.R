@@ -21,13 +21,17 @@ cat(sprintf("Source DB:      %s\n", SOURCE_DB))
 cat(sprintf("Catalogue file: %s\n", DUCKLAKE_FILE))
 cat(sprintf("Data path:      %s\n\n", DATA_PATH))
 
-# --- Clean up any previous catalogue file ---
+# --- Backup any previous catalogue file ---
+BACKUP_FILE <- paste0(DUCKLAKE_FILE, ".bak")
+had_backup <- FALSE
 if (file.exists(DUCKLAKE_FILE)) {
-  cat("Removing existing catalogue file...\n")
+  cat("Backing up existing catalogue file...\n")
+  file.copy(DUCKLAKE_FILE, BACKUP_FILE, overwrite = TRUE)
   file.remove(DUCKLAKE_FILE)
   # Also remove WAL file if present
   wal_file <- paste0(DUCKLAKE_FILE, ".wal")
   if (file.exists(wal_file)) file.remove(wal_file)
+  had_backup <- TRUE
 }
 
 # --- Read and parse SQL file ---
@@ -82,8 +86,13 @@ if (length(result) > 0) {
 
 exit_code <- attr(result, "status")
 if (!is.null(exit_code) && exit_code != 0) {
-  cat(sprintf("WARNING: DuckDB CLI exited with code %d\n", exit_code))
-  cat("Some statements may have failed. Checking results...\n\n")
+  cat(sprintf("ERROR: DuckDB CLI exited with code %d\n", exit_code))
+  if (had_backup) {
+    cat("Restoring catalogue from backup...\n")
+    file.copy(BACKUP_FILE, DUCKLAKE_FILE, overwrite = TRUE)
+    file.remove(BACKUP_FILE)
+  }
+  stop("DuckLake creation failed. Previous catalogue restored.")
 }
 
 # Clean up temp file
@@ -141,5 +150,11 @@ if (!is.null(verify_exit) && verify_exit != 0) {
 }
 
 file.remove(tmp_verify_local)
+
+# Clean up backup after successful creation
+if (had_backup && file.exists(BACKUP_FILE)) {
+  file.remove(BACKUP_FILE)
+  cat("Backup removed after successful creation.\n")
+}
 
 cat("\n=== Done ===\n")

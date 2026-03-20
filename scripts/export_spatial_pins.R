@@ -11,6 +11,8 @@
 #   (run from project root directory)
 
 library(pins)
+library(duckdb)
+library(DBI)
 
 # --- Configuration ---
 SQL_FILE <- "scripts/recreate_spatial_ducklake.sql"
@@ -50,6 +52,18 @@ spatial_tables <- data.frame(
   ),
   stringsAsFactors = FALSE
 )
+
+# --- Get column metadata from source DB ---
+drv <- duckdb(dbdir = SOURCE_DB, read_only = TRUE)
+src_con <- dbConnect(drv)
+col_meta_all <- dbGetQuery(src_con, "
+  SELECT table_name, column_name, data_type, comment
+  FROM duckdb_columns()
+  WHERE schema_name = 'main'
+  ORDER BY table_name, column_index
+")
+dbDisconnect(src_con)
+duckdb_shutdown(drv)
 
 # Track results
 results <- data.frame(
@@ -185,6 +199,27 @@ for (i in seq_len(nrow(spatial_tables))) {
     fsize <- file.info(temp_path)$size
     cat(sprintf("exported (%.1f KB)... ", fsize / 1024))
 
+    # Build metadata with columns and column_types
+    pin_meta_list <- list(
+      source_db = "ducklake",
+      spatial = TRUE,
+      geometry_column = geom_col,
+      geometry_type = geom_type,
+      crs = crs
+    )
+
+    tbl_col_meta <- col_meta_all[col_meta_all$table_name == tbl, ]
+    if (nrow(tbl_col_meta) > 0) {
+      pin_meta_list$columns <- setNames(
+        as.list(ifelse(is.na(tbl_col_meta$comment), "", tbl_col_meta$comment)),
+        tbl_col_meta$column_name
+      )
+      pin_meta_list$column_types <- setNames(
+        as.list(tbl_col_meta$data_type),
+        tbl_col_meta$column_name
+      )
+    }
+
     # Upload as pin
     pin_upload(
       board,
@@ -195,13 +230,7 @@ for (i in seq_len(nrow(spatial_tables))) {
                             tbl_title,
                             format(expected_rows, big.mark = ","),
                             crs),
-      metadata = list(
-        source_db = "ducklake",
-        spatial = TRUE,
-        geometry_column = geom_col,
-        geometry_type = geom_type,
-        crs = crs
-      )
+      metadata = pin_meta_list
     )
 
     results$pin_ok[i] <- TRUE

@@ -1,3 +1,4 @@
+# Ad-hoc exploratory script -- not part of the production pipeline
 # Setup for pins and AWS bucket
 # aws credentials are in .aws and keeper
 #

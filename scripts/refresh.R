@@ -92,10 +92,11 @@ build_ducklake_sql <- function(table_name, is_spatial, spatial_meta) {
 }
 
 #' Execute SQL via DuckDB CLI (write to temp file, run, clean up)
-run_duckdb_cli <- function(sql_text, timeout = 600) {
+run_duckdb_cli <- function(sql_text, timeout = 600, csv_mode = FALSE) {
   tmp_sql <- "scripts/.tmp_refresh.sql"
   writeLines(sql_text, tmp_sql, useBytes = TRUE)
-  cmd <- sprintf('duckdb -init "%s" -c "SELECT 1;" -no-stdin', tmp_sql)
+  csv_flag <- if (csv_mode) " -csv" else ""
+  cmd <- sprintf('duckdb%s -init "%s" -c "SELECT 1;" -no-stdin', csv_flag, tmp_sql)
   result <- system(cmd, intern = TRUE, timeout = timeout)
   file.remove(tmp_sql)
   exit_code <- attr(result, "status")
@@ -126,20 +127,20 @@ get_ducklake_counts <- function(table_names) {
     paste0(combined_query, ";"),
     sep = "\n"
   )
-  result <- run_duckdb_cli(sql, timeout = 300)
+  result <- run_duckdb_cli(sql, timeout = 300, csv_mode = TRUE)
 
-  # Parse box-drawing table output from DuckDB CLI
-  # Lines with data look like: │ table_name │ 12345 │
+  # Parse CSV output: header line "tbl,n" then data lines "table_name,12345"
   counts <- setNames(rep(NA_real_, length(table_names)), table_names)
-  for (line in result$output) {
-    # Match lines containing a table name and a number separated by │
-    cleaned <- gsub("\u2502", "|", line)  # Replace box-drawing │ with |
-    parts <- trimws(unlist(strsplit(cleaned, "\\|")))
-    parts <- parts[nchar(parts) > 0]
-    if (length(parts) == 2 && parts[1] %in% table_names) {
-      val <- suppressWarnings(as.numeric(parts[2]))
-      if (!is.na(val)) {
-        counts[parts[1]] <- val
+  csv_text <- paste(result$output, collapse = "\n")
+  parsed <- tryCatch(
+    read.csv(text = csv_text, stringsAsFactors = FALSE),
+    error = function(e) NULL
+  )
+  if (!is.null(parsed) && "tbl" %in% names(parsed) && "n" %in% names(parsed)) {
+    for (j in seq_len(nrow(parsed))) {
+      tbl_name <- parsed$tbl[j]
+      if (tbl_name %in% table_names) {
+        counts[tbl_name] <- parsed$n[j]
       }
     }
   }
@@ -148,8 +149,13 @@ get_ducklake_counts <- function(table_names) {
 }
 
 #' Export a non-spatial table as a pin
-export_nonspatial_pin <- function(con, board, table_name, row_count, col_meta) {
-  title <- table_name
+export_nonspatial_pin <- function(con, board, table_name, row_count, col_meta,
+                                  table_comment = NA_character_) {
+  title <- if (!is.na(table_comment) && nchar(trimws(table_comment)) > 0) {
+    table_comment
+  } else {
+    table_name
+  }
   meta <- list(
     source_db = "ducklake",
     columns = setNames(
@@ -217,7 +223,7 @@ export_nonspatial_pin <- function(con, board, table_name, row_count, col_meta) {
 }
 
 #' Export a spatial table as a GeoParquet pin
-export_spatial_pin <- function(board, table_name, spatial_meta) {
+export_spatial_pin <- function(board, table_name, spatial_meta, col_meta = NULL) {
   meta_row <- spatial_meta[spatial_meta$table_name == table_name, ]
   geom_col <- meta_row$geom_col
   geom_type <- meta_row$geom_type
@@ -258,19 +264,32 @@ export_spatial_pin <- function(board, table_name, spatial_meta) {
     stop(sprintf("GeoParquet export failed for %s", table_name))
   }
 
+  meta <- list(
+    source_db = "ducklake",
+    spatial = TRUE,
+    geometry_column = geom_col,
+    geometry_type = geom_type,
+    crs = crs
+  )
+
+  if (!is.null(col_meta) && nrow(col_meta) > 0) {
+    meta$columns <- setNames(
+      as.list(ifelse(is.na(col_meta$comment), "", col_meta$comment)),
+      col_meta$column_name
+    )
+    meta$column_types <- setNames(
+      as.list(col_meta$data_type),
+      col_meta$column_name
+    )
+  }
+
   pin_upload(
     board,
     paths = temp_path,
     name = table_name,
     title = table_name,
     description = sprintf("%s (GeoParquet, %s, %s)", table_name, geom_type, crs),
-    metadata = list(
-      source_db = "ducklake",
-      spatial = TRUE,
-      geometry_column = geom_col,
-      geometry_type = geom_type,
-      crs = crs
-    )
+    metadata = meta
   )
 
   unlink(temp_path)
@@ -334,6 +353,29 @@ tables_df$source_rows <- vapply(
   },
   numeric(1)
 )
+
+# ============================================================
+# PRE-FLIGHT: Verify all source tables are readable before DROP
+# ============================================================
+cat("--- Pre-flight: Verify source tables ---\n")
+
+preflight_ok <- TRUE
+for (i in seq_len(nrow(tables_df))) {
+  tbl <- tables_df$table_name[i]
+  count_check <- tryCatch(
+    dbGetQuery(con, sprintf('SELECT COUNT(*) AS n FROM "%s"', tbl))$n,
+    error = function(e) NA_real_
+  )
+  if (is.na(count_check)) {
+    cat(sprintf("  FAIL: %s is unreadable\n", tbl))
+    preflight_ok <- FALSE
+  }
+}
+
+if (!preflight_ok) {
+  stop("Pre-flight failed: one or more source tables are unreadable. Aborting before any DROP.")
+}
+cat(sprintf("  All %d source tables readable\n\n", nrow(tables_df)))
 
 # ============================================================
 # STEP 1: DuckLake export (single CLI call for all 18 tables)
@@ -450,11 +492,12 @@ for (i in seq_len(nrow(tables_df))) {
   tbl_start <- Sys.time()
 
   result <- tryCatch({
+    col_meta <- columns_df[columns_df$table_name == tbl, ]
     if (is_spatial) {
-      export_spatial_pin(board, tbl, SPATIAL_META)
+      export_spatial_pin(board, tbl, SPATIAL_META, col_meta = col_meta)
     } else {
-      col_meta <- columns_df[columns_df$table_name == tbl, ]
-      export_nonspatial_pin(con, board, tbl, row_count, col_meta)
+      export_nonspatial_pin(con, board, tbl, row_count, col_meta,
+                            table_comment = tables_df$comment[i])
     }
     list(success = TRUE, error = NULL)
   }, error = function(e) {
@@ -476,48 +519,14 @@ for (i in seq_len(nrow(tables_df))) {
 cat("\n")
 
 # ============================================================
-# STEP 4: Console summary
+# STEP 4: Compute table-level pass/fail
 # ============================================================
-run_elapsed <- as.numeric(difftime(Sys.time(), run_start, units = "secs"))
-
-# Determine overall pass/fail per table
 tables_df$status <- ifelse(tables_df$ducklake_ok & tables_df$pin_ok, "PASS", "FAIL")
-
-cat("=== Refresh Summary ===\n\n")
-cat(sprintf("%-35s %10s %8s %6s\n", "Table", "Rows", "Secs", "Status"))
-cat(paste(rep("-", 65), collapse = ""), "\n")
-
-for (i in seq_len(nrow(tables_df))) {
-  cat(sprintf("%-35s %10s %8.1f %6s\n",
-              tables_df$table_name[i],
-              format(tables_df$source_rows[i], big.mark = ","),
-              tables_df$time_secs[i],
-              tables_df$status[i]))
-}
-
-cat(paste(rep("-", 65), collapse = ""), "\n")
-
 n_pass <- sum(tables_df$status == "PASS")
 n_fail <- sum(tables_df$status == "FAIL")
 total_rows <- sum(tables_df$source_rows)
 
-cat(sprintf("\nTables refreshed: %d/%d\n", n_pass, nrow(tables_df)))
-cat(sprintf("Total rows:       %s\n", format(total_rows, big.mark = ",")))
-cat(sprintf("Total time:       %.1f seconds\n", run_elapsed))
-cat(sprintf("Failures:         %d\n", n_fail))
-
-if (n_fail > 0) {
-  cat("\n--- Failure Details ---\n")
-  failed <- tables_df[tables_df$status == "FAIL", ]
-  for (j in seq_len(nrow(failed))) {
-    reason <- if (!failed$ducklake_ok[j]) "DuckLake row count mismatch"
-              else if (!failed$pin_ok[j]) failed$pin_error[j]
-              else "Unknown"
-    cat(sprintf("  %s: %s\n", failed$table_name[j], reason))
-  }
-}
-
-cat(sprintf("\nOverall: %s\n", if (n_fail == 0) "ALL PASSED" else "SOME FAILED"))
+cat(sprintf("Tables: %d/%d passed\n", n_pass, nrow(tables_df)))
 
 # ============================================================
 # STEP 5: Generate datasets_catalogue
@@ -774,8 +783,11 @@ datasets_load_sql <- paste(
 datasets_load_result <- run_duckdb_cli(datasets_load_sql, timeout = 120)
 file.remove(tmp_datasets_csv)
 
-if (datasets_load_result$exit_code != 0) {
-  cat("  WARNING: Failed to load datasets_catalogue into DuckLake\n")
+datasets_dl_ok <- (datasets_load_result$exit_code == 0)
+datasets_pin_ok <- FALSE
+
+if (!datasets_dl_ok) {
+  cat("  FAILED: datasets_catalogue DuckLake load failed\n")
   for (line in datasets_load_result$output) cat(sprintf("    %s\n", line))
 } else {
   cat("  datasets_catalogue loaded into DuckLake\n")
@@ -796,9 +808,18 @@ pin_write(
                         refresh_timestamp),
   metadata = list(
     source = "refresh.R catalogue generation",
-    generated = refresh_timestamp
+    generated = refresh_timestamp,
+    columns = setNames(
+      as.list(rep("", ncol(datasets_df))),
+      names(datasets_df)
+    ),
+    column_types = setNames(
+      as.list(vapply(datasets_df, function(x) class(x)[1], character(1))),
+      names(datasets_df)
+    )
   )
 )
+datasets_pin_ok <- TRUE
 cat("  datasets_catalogue pinned to S3\n")
 
 # ============================================================
@@ -980,8 +1001,11 @@ columns_load_sql <- paste(
 columns_load_result <- run_duckdb_cli(columns_load_sql, timeout = 120)
 file.remove(tmp_columns_csv)
 
-if (columns_load_result$exit_code != 0) {
-  cat("  WARNING: Failed to load columns_catalogue into DuckLake\n")
+columns_dl_ok <- (columns_load_result$exit_code == 0)
+columns_pin_ok <- FALSE
+
+if (!columns_dl_ok) {
+  cat("  FAILED: columns_catalogue DuckLake load failed\n")
   for (line in columns_load_result$output) cat(sprintf("    %s\n", line))
 } else {
   cat("  columns_catalogue loaded into DuckLake\n")
@@ -1001,16 +1025,60 @@ pin_write(
                         refresh_timestamp),
   metadata = list(
     source = "refresh.R catalogue generation",
-    generated = refresh_timestamp
+    generated = refresh_timestamp,
+    columns = setNames(
+      as.list(rep("", ncol(columns_cat))),
+      names(columns_cat)
+    ),
+    column_types = setNames(
+      as.list(vapply(columns_cat, function(x) class(x)[1], character(1))),
+      names(columns_cat)
+    )
   )
 )
+columns_pin_ok <- TRUE
 cat("  columns_catalogue pinned to S3\n")
 
 # ============================================================
-# Final summary
+# Final combined summary (tables + catalogues)
 # ============================================================
-cat_elapsed <- as.numeric(difftime(Sys.time(), run_start, units = "secs"))
-cat(sprintf("\n=== Catalogue generation complete ===\n"))
+total_elapsed <- as.numeric(difftime(Sys.time(), run_start, units = "secs"))
+
+cat("\n=== Final Summary ===\n\n")
+
+# Table refresh summary
+cat(sprintf("%-35s %10s %8s %6s\n", "Table", "Rows", "Secs", "Status"))
+cat(paste(rep("-", 65), collapse = ""), "\n")
+
+for (i in seq_len(nrow(tables_df))) {
+  cat(sprintf("%-35s %10s %8.1f %6s\n",
+              tables_df$table_name[i],
+              format(tables_df$source_rows[i], big.mark = ","),
+              tables_df$time_secs[i],
+              tables_df$status[i]))
+}
+
+cat(paste(rep("-", 65), collapse = ""), "\n")
+cat(sprintf("\nTables refreshed: %d/%d\n", n_pass, nrow(tables_df)))
+cat(sprintf("Total rows:       %s\n", format(total_rows, big.mark = ",")))
+
+if (n_fail > 0) {
+  cat("\n--- Table Failure Details ---\n")
+  failed <- tables_df[tables_df$status == "FAIL", ]
+  for (j in seq_len(nrow(failed))) {
+    reason <- if (!failed$ducklake_ok[j]) "DuckLake row count mismatch"
+              else if (!failed$pin_ok[j]) failed$pin_error[j]
+              else "Unknown"
+    cat(sprintf("  %s: %s\n", failed$table_name[j], reason))
+  }
+}
+
+# Catalogue summary
+cat("\n--- Catalogue Status ---\n")
+cat(sprintf("  datasets_catalogue DuckLake: %s\n", if (datasets_dl_ok) "OK" else "FAILED"))
+cat(sprintf("  datasets_catalogue pin:      %s\n", if (datasets_pin_ok) "OK" else "FAILED"))
+cat(sprintf("  columns_catalogue DuckLake:  %s\n", if (columns_dl_ok) "OK" else "FAILED"))
+cat(sprintf("  columns_catalogue pin:       %s\n", if (columns_pin_ok) "OK" else "FAILED"))
 cat(sprintf("  datasets_catalogue: %d rows (%d tables, %d views)\n",
             nrow(datasets_df),
             sum(datasets_df$type == "table"),
@@ -1018,6 +1086,14 @@ cat(sprintf("  datasets_catalogue: %d rows (%d tables, %d views)\n",
 cat(sprintf("  columns_catalogue:  %d rows across %d tables\n",
             nrow(columns_cat),
             length(unique(columns_cat$table_name))))
-cat(sprintf("  Total pipeline time: %.1f seconds\n", cat_elapsed))
+
+# Overall verdict
+catalogue_ok <- datasets_dl_ok && datasets_pin_ok && columns_dl_ok && columns_pin_ok
+overall_ok <- (n_fail == 0) && catalogue_ok
+
+cat(sprintf("\nTotal time:  %.1f seconds\n", total_elapsed))
+cat(sprintf("Failures:    %d table(s), %s catalogue\n",
+            n_fail, if (catalogue_ok) "0" else "SOME"))
+cat(sprintf("\nOverall: %s\n", if (overall_ok) "ALL PASSED" else "SOME FAILED"))
 
 cat("\nDone.\n")
