@@ -10,6 +10,8 @@ website:
         href: index.qmd
       - text: "Analyst Guide"
         href: analyst-guide.qmd
+      - text: "Admin Guide"
+        href: admin-guide.qmd
 
 format:
   html:

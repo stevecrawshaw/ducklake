@@ -1,0 +1,633 @@
+---
+title: "WECA Data Platform: Admin Guide"
+subtitle: "Creating, managing, and maintaining the DuckLake catalogue and S3 pins"
+author: "West of England Combined Authority"
+date: last-modified
+title-block-banner: true
+format:
+  html:
+    code-fold: false
+    mermaid:
+      theme: default
+execute:
+  echo: false
+  eval: true
+  warning: false
+---
+
+![](weca_logo.jpg){width=200px fig-align="left"}
+
+# Introduction
+
+This guide covers the administration of WECA's shared data platform: the DuckLake catalogue, S3 pin storage, refresh pipeline, and validation procedures. It is intended for administrators who need to set up, maintain, or troubleshoot the system.
+
+For analyst-facing documentation (reading data, querying, spatial workflows), see the [Analyst Guide](analyst-guide.qmd).
+
+## System Overview
+
+The platform stores **18 curated datasets** (10 non-spatial, 8 spatial) with two access routes for analysts:
+
+- **Pins** -- parquet files on S3, readable directly into R/Python data frames
+- **DuckLake** -- a versioned catalogue with SQL access, time travel, and pre-built views
+
+Both routes serve the same underlying data. The admin's job is to keep them in sync and validated.
+
+```{mermaid}
+%%| label: fig-system-overview
+%%| fig-cap: "System architecture: source database, DuckLake catalogue, and S3 pins"
+flowchart LR
+    subgraph Local["Local Machine"]
+        SRC[(mca_env_base.duckdb<br/>Source Database)]
+        CAT[(mca_env.ducklake<br/>Catalogue Metadata)]
+    end
+
+    subgraph S3["S3: stevecrawshaw-bucket"]
+        DL[ducklake/data/<br/>Parquet files]
+        PINS[pins/<br/>Versioned parquet]
+    end
+
+    subgraph Analysts["Analyst Access"]
+        SQL[DuckDB CLI + SQL]
+        R[R pins::pin_read]
+        PY[Python pins.pin_read]
+    end
+
+    SRC -->|refresh.R| CAT
+    SRC -->|refresh.R| DL
+    SRC -->|refresh.R| PINS
+    CAT --- DL
+    DL --> SQL
+    PINS --> R
+    PINS --> PY
+```
+
+## Key Facts
+
+| Item | Value |
+|------|-------|
+| AWS region | `eu-west-2` (London) |
+| S3 bucket | `stevecrawshaw-bucket` |
+| DuckLake data prefix | `ducklake/data/` |
+| Pins prefix | `pins/` |
+| Catalogue file (local) | `data/mca_env.ducklake` |
+| Source database | `data/mca_env_base.duckdb` |
+| Tables | 18 (10 non-spatial, 8 spatial) |
+| Views | 12 (mostly WECA-filtered) |
+| Column comments | 403 |
+| Snapshot retention | 90 days |
+
+# Prerequisites
+
+## Software
+
+- **DuckDB CLI** -- on PATH, with extensions: `ducklake`, `httpfs`, `aws`, `spatial`
+- **R** (>= 4.3) with packages: `pins`, `arrow`, `sf`, `duckdb`, `DBI`
+- **Python** (3.10+) with: `pins[aws]`, `pyarrow`, `s3fs`, `boto3`, `duckdb`, `geopandas`
+- **uv** -- Python package manager (install deps with `uv sync`)
+
+## AWS Credentials
+
+All S3 access uses the AWS credential chain. Configure:
+
+`~/.aws/credentials`:
+
+```ini
+[default]
+aws_access_key_id = <YOUR_KEY>
+aws_secret_access_key = <YOUR_SECRET>
+```
+
+`~/.aws/config`:
+
+```ini
+[default]
+region = eu-west-2
+output = json
+```
+
+::: {.callout-warning}
+The region **must** be `eu-west-2`. Other regions will produce access denied errors.
+:::
+
+## Verify S3 Access
+
+```bash
+duckdb < scripts/verify_s3_access.sql
+```
+
+This loads the credential chain and lists the bucket root and pins prefix. If it fails, check your `~/.aws/credentials` file.
+
+# DuckLake Catalogue
+
+## What Is DuckLake?
+
+DuckLake is a DuckDB extension that provides a catalogue layer over parquet files stored on S3. The catalogue metadata (table definitions, comments, snapshots) lives in a local `.ducklake` file. The actual data lives as parquet files on S3.
+
+```{mermaid}
+%%| label: fig-ducklake-architecture
+%%| fig-cap: "DuckLake separates metadata (local) from data (S3)"
+flowchart TB
+    subgraph Catalogue["Local Catalogue (mca_env.ducklake)"]
+        META[Table definitions]
+        COMMENTS[Column comments<br/>403 documented]
+        SNAPSHOTS[Snapshots<br/>Time travel history]
+        VIEWS[12 pre-built views]
+    end
+
+    subgraph S3Data["S3: ducklake/data/"]
+        P1[table1.parquet]
+        P2[table2.parquet]
+        P3[...]
+        P18[table18.parquet]
+    end
+
+    META --> S3Data
+    SNAPSHOTS --> S3Data
+```
+
+::: {.callout-important}
+## Key limitation
+DuckDB cannot create `.ducklake` files on S3. The catalogue metadata must remain on the local filesystem. Only the parquet data files are stored on S3.
+:::
+
+## Creating the Catalogue
+
+The catalogue is created from the source database (`data/mca_env_base.duckdb`) which contains all 18 tables pre-loaded.
+
+```bash
+Rscript scripts/create_ducklake.R
+```
+
+### What This Does
+
+```{mermaid}
+%%| label: fig-create-flow
+%%| fig-cap: "DuckLake creation workflow"
+flowchart TD
+    A[Load DuckDB extensions<br/>ducklake, httpfs, aws, spatial] --> B[Create S3 secret<br/>credential_chain]
+    B --> C[Create .placeholder on S3<br/>DuckLake requires directory to exist]
+    C --> D[ATTACH ducklake catalogue<br/>with DATA_PATH on S3]
+    D --> E{For each table}
+    E -->|Non-spatial| F[CREATE TABLE AS SELECT<br/>Direct copy]
+    E -->|Spatial| G[CREATE TABLE with<br/>geometry type casting]
+    G --> H{Edge cases?}
+    H -->|ca_boundaries_bgc_tbl| I[ST_Multi for mixed<br/>POLYGON/MULTIPOLYGON]
+    H -->|lsoa_2021_lep_tbl| J[Add geom_valid flag<br/>for 2 invalid geometries]
+    H -->|Other spatial| K[ST_GeomFromWKB<br/>standard conversion]
+    F --> L[Verify: 18 tables created]
+    I --> L
+    J --> L
+    K --> L
+```
+
+The script generates temporary SQL, executes it via DuckDB CLI (because the R `duckdb` package lacks the `ducklake` extension), and cleans up after itself.
+
+### DuckDB CLI Preamble
+
+Every script that touches DuckLake uses this SQL preamble:
+
+```sql
+INSTALL ducklake;   LOAD ducklake;
+INSTALL httpfs;     LOAD httpfs;
+INSTALL aws;        LOAD aws;
+INSTALL spatial;    LOAD spatial;
+
+CREATE SECRET (TYPE s3, REGION 'eu-west-2', PROVIDER credential_chain);
+
+ATTACH 'ducklake:data/mca_env.ducklake' AS lake
+  (DATA_PATH 's3://stevecrawshaw-bucket/ducklake/data/');
+```
+
+## Comments and Views
+
+After creating the catalogue, apply column/table comments and create views:
+
+```bash
+Rscript scripts/apply_comments.R
+```
+
+This script:
+
+1. Extracts all table and column comments from the source database
+2. Generates `COMMENT ON TABLE` and `COMMENT ON COLUMN` SQL statements
+3. Applies them to the DuckLake catalogue via DuckDB CLI
+4. Creates 12 views (defined in `scripts/create_views.sql`)
+
+### Views
+
+| View | Description |
+|------|-------------|
+| `ca_la_lookup_inc_ns_vw` | CA/LA lookup including North Somerset |
+| `weca_lep_la_vw` | WECA LEP local authorities |
+| `ca_la_ghg_emissions_sub_sector_ods_vw` | GHG emissions joined with CA/LA lookup |
+| `epc_domestic_vw` | Domestic EPC with derived fields |
+| `la_ghg_emissions_weca_vw` | GHG emissions filtered to WECA |
+| `la_ghg_emissions_wide_weca_vw` | GHG emissions wide format, WECA |
+| `raw_domestic_epc_weca_vw` | Domestic EPC, WECA |
+| `raw_non_domestic_epc_weca_vw` | Non-domestic EPC, WECA |
+| `boundary_lookup_weca_vw` | Boundary lookup, WECA |
+| `postcode_centroids_weca_vw` | Postcode centroids, WECA |
+| `iod2025_weca_vw` | Index of deprivation 2025, WECA |
+| `ca_la_lookup_weca_vw` | CA/LA lookup, WECA |
+
+WECA LA codes used for filtering: `E06000022`, `E06000023`, `E06000024`, `E06000025`.
+
+## Time Travel and Retention
+
+DuckLake stores snapshots automatically. Analysts can query historical states:
+
+```sql
+-- Query data as it was at a specific snapshot
+SELECT * FROM lake.table_name AT (SNAPSHOT => 42);
+
+-- View available snapshots
+SELECT * FROM ducklake_snapshots('lake');
+
+-- View changes between snapshots
+SELECT * FROM ducklake_table_changes('lake', 'table_name', 1, 42);
+```
+
+### Retention Policy
+
+Snapshots are retained for 90 days by default. To adjust:
+
+```sql
+CALL lake.set_option('expire_older_than', '90 days');
+```
+
+The configuration script is at `scripts/configure_retention.sql`.
+
+# S3 Pins
+
+## How Pins Work
+
+Pins are versioned parquet files stored on S3. Each pin has metadata (title, description, column types) and one or more parquet data files.
+
+```{mermaid}
+%%| label: fig-pins-architecture
+%%| fig-cap: "Pin storage structure on S3"
+flowchart TD
+    subgraph Board["S3 Board: pins/"]
+        subgraph Pin1["ca_la_lookup_tbl/"]
+            V1[20260320T143022Z-abc12/]
+            V2[20260315T091500Z-def34/]
+            V1 --> D1[data.parquet]
+            V1 --> M1[data.txt<br/>metadata]
+        end
+        subgraph Pin2["open_uprn_lep_tbl/"]
+            V3[20260320T143500Z-ghi56/]
+            V3 --> D2A[data_part001.parquet]
+            V3 --> D2B[data_part002.parquet]
+            V3 --> D2C[data_part003.parquet]
+            V3 --> M2[data.txt<br/>metadata]
+        end
+    end
+```
+
+### Pin Types
+
+| Type | Method | When Used |
+|------|--------|-----------|
+| Standard | `pin_write()` | Tables < 5M rows |
+| Chunked | `pin_upload()` | Tables >= 5M rows (split into 3M-row parquet files) |
+| GeoParquet | `pin_upload()` | All 8 spatial tables (exported via DuckDB CLI) |
+
+### Why Chunking?
+
+The `curl` library has a 2 GB upload limit. Large tables exceed this when serialised as a single parquet file. The workaround splits data into 3M-row chunks, uploads as a multi-file pin via `pin_upload()`.
+
+::: {.callout-note}
+## Multi-file pin limitation
+Python's `pins` package cannot `pin_read()` multi-file pins. The workaround is to use `pyarrow.dataset.dataset()` with an S3 filesystem to read all parts as a single dataset. See the [Analyst Guide](analyst-guide.qmd) for details.
+:::
+
+## Exporting Pins
+
+### Non-Spatial Tables
+
+```bash
+Rscript scripts/export_pins.R
+```
+
+Reads from the source DuckDB, identifies non-spatial tables (by checking for BLOB/GEOMETRY/WKB columns), and exports each as a pinned parquet file with metadata.
+
+### Spatial Tables
+
+```bash
+Rscript scripts/export_spatial_pins.R
+```
+
+Exports all 8 spatial tables as GeoParquet via DuckDB CLI, then uploads with `pin_upload()`. Handles edge cases (ST_Multi, geom_valid) per table.
+
+::: {.callout-warning}
+## GeoParquet CRS limitation
+DuckDB does not embed CRS metadata in GeoParquet files. CRS is stored in the pin metadata instead. Analysts must set CRS explicitly when reading spatial pins:
+
+```r
+sf_obj <- sf::st_set_crs(sf_obj, 27700)
+```
+:::
+
+# The Refresh Pipeline
+
+## Overview
+
+`scripts/refresh.R` is the unified pipeline that updates everything in one command:
+
+```bash
+Rscript scripts/refresh.R
+```
+
+```{mermaid}
+%%| label: fig-refresh-pipeline
+%%| fig-cap: "Unified refresh pipeline: three stages"
+flowchart TD
+    START[refresh.R] --> S1
+
+    subgraph S1["Stage 1: DuckLake Export"]
+        direction TB
+        A1[DROP all 18 tables] --> A2[CREATE TABLE for each<br/>with spatial type casting]
+        A2 --> A3[Row count validation<br/>source vs DuckLake]
+    end
+
+    S1 --> S2
+
+    subgraph S2["Stage 2: Pin Export"]
+        direction TB
+        B1{Table type?}
+        B1 -->|Non-spatial, small| B2[pin_write]
+        B1 -->|Non-spatial, large| B3[Chunked pin_upload<br/>3M rows per file]
+        B1 -->|Spatial| B4[DuckDB CLI GeoParquet<br/>then pin_upload]
+    end
+
+    S2 --> S3
+
+    subgraph S3["Stage 3: Catalogue Generation"]
+        direction TB
+        C1[datasets_catalogue<br/>row per table + view]
+        C2[columns_catalogue<br/>all columns, example values]
+        C1 --> C3[Write CSV<br/>Load to DuckLake<br/>Pin to S3]
+        C2 --> C3
+    end
+
+    S3 --> DONE[Summary table<br/>pass/fail per table]
+```
+
+## What Refresh Does NOT Do
+
+- **Does not re-apply column comments** -- run `Rscript scripts/apply_comments.R` separately if comments need updating
+- **Does not recreate views** -- views survive table drops in DuckLake, but run `apply_comments.R` if they need changes
+
+## Output
+
+The script prints a summary table to the console showing each table's name, row count, export method, time taken, and pass/fail status.
+
+# Spatial Tables
+
+## The 8 Spatial Tables
+
+| Table | Geometry Type | CRS | Rows | Notes |
+|-------|--------------|-----|------|-------|
+| `bdline_ua_lep_diss_tbl` | POLYGON | EPSG:27700 | 1 | -- |
+| `bdline_ua_lep_tbl` | MULTIPOLYGON | EPSG:27700 | 4 | -- |
+| `bdline_ua_weca_diss_tbl` | POLYGON | EPSG:27700 | 1 | -- |
+| `bdline_ward_lep_tbl` | MULTIPOLYGON | EPSG:27700 | 130 | -- |
+| `ca_boundaries_bgc_tbl` | MULTIPOLYGON | EPSG:4326 | 15 | Mixed types, uses ST_Multi() |
+| `codepoint_open_lep_tbl` | POINT | EPSG:27700 | 31,299 | -- |
+| `lsoa_2021_lep_tbl` | MULTIPOLYGON | EPSG:27700 | 698 | 2 invalid geometries, geom_valid flag |
+| `open_uprn_lep_tbl` | POINT | EPSG:27700 | 687,143 | Largest table; chunked upload |
+
+## Geometry Conversion Pipeline
+
+```{mermaid}
+%%| label: fig-spatial-conversion
+%%| fig-cap: "How spatial data flows from source to consumers"
+flowchart LR
+    SRC["Source DB<br/>WKB_BLOB columns"] -->|ST_GeomFromWKB| DL["DuckLake<br/>GEOMETRY columns"]
+    SRC -->|ST_GeomFromWKB| GP["GeoParquet files<br/>on S3 via pins"]
+    DL -->|DuckDB SQL| ANALYST1["Analyst<br/>SQL queries"]
+    GP -->|arrow + sf| ANALYST2["Analyst<br/>R sf objects"]
+    GP -->|pyarrow + geopandas| ANALYST3["Analyst<br/>Python GeoDataFrame"]
+```
+
+## Edge Cases
+
+**`ca_boundaries_bgc_tbl`** -- source data mixes POLYGON and MULTIPOLYGON geometries. All are promoted to MULTIPOLYGON with `ST_Multi(geom)` to ensure a consistent type.
+
+**`lsoa_2021_lep_tbl`** -- 2 of 698 geometries are invalid. A `geom_valid` BOOLEAN column is added using `ST_IsValid()` so analysts can filter if needed.
+
+**`sfarrow`** -- fails on DuckDB-produced GeoParquet. Use `arrow::read_parquet()` then `sf::st_as_sf()` instead.
+
+# Validation
+
+## Full Validation Suite
+
+Run all checks after any changes:
+
+```bash
+# DuckLake catalogue (8-point check)
+Rscript scripts/validate_ducklake.R
+
+# Pin integrity (R)
+Rscript scripts/validate_pins_r.R
+
+# Pin integrity (Python)
+uv run python scripts/validate_pins.py
+
+# Cross-language interop
+Rscript scripts/test_interop.R
+uv run python scripts/test_interop.py
+```
+
+## DuckLake Validation Checks
+
+`scripts/validate_ducklake.R` runs 8 checks:
+
+```{mermaid}
+%%| label: fig-validation
+%%| fig-cap: "8-point DuckLake validation"
+flowchart TD
+    V[validate_ducklake.R] --> C1[1. Table count = 18]
+    V --> C2[2. Table comments >= 15]
+    V --> C3[3. Column comments >= 350]
+    V --> C4[4. Views >= 12]
+    V --> C5[5. Time travel<br/>Insert row, query old snapshot,<br/>verify row counts differ]
+    V --> C6[6. Data change feed<br/>table_changes between snapshots]
+    V --> C7[7. Retention policy<br/>90-day expiry configured]
+    V --> C8[8. Read-only access<br/>Query view, DESCRIBE table]
+```
+
+## Pin Validation
+
+The pin validation scripts:
+
+1. List all pins on the S3 board
+2. Read each pin and verify it loads without error
+3. Check metadata is present (title, column descriptions)
+4. For large tables, use `arrow::open_dataset()` (R) or `pyarrow.dataset` (Python)
+5. Report pass/fail per pin
+
+## Quick Health Check
+
+For a fast connectivity and sanity check without running the full suite:
+
+```bash
+# S3 connectivity
+duckdb < scripts/verify_s3_access.sql
+
+# Interactive DuckLake queries
+duckdb < scripts/verify_ducklake.sql
+```
+
+# Operational Procedures
+
+## Initial Setup (New Machine)
+
+```{mermaid}
+%%| label: fig-initial-setup
+%%| fig-cap: "Steps to set up the platform from scratch"
+flowchart TD
+    A[Clone repository] --> B[Install DuckDB CLI]
+    B --> C[Configure AWS credentials]
+    C --> D[Install R packages]
+    D --> E[Install Python deps]
+    E --> F[Verify S3 access]
+    F --> G[Create DuckLake catalogue]
+    G --> H[Apply comments and views]
+    H --> I[Export pins to S3]
+    I --> J[Run validation suite]
+```
+
+## Regular Data Refresh
+
+When source data is updated in `data/mca_env_base.duckdb`:
+
+```bash
+Rscript scripts/refresh.R
+```
+
+This is all you need. It handles DuckLake export, pin export, and catalogue generation in one pass.
+
+## Adding a New Table
+
+1. Add the table to `data/mca_env_base.duckdb`
+2. If spatial, add edge-case handling to `scripts/refresh.R` (geometry conversion, ST_Multi if needed)
+3. Add table/column comments to the source database
+4. Run `Rscript scripts/refresh.R`
+5. Run `Rscript scripts/apply_comments.R` to pick up new comments
+6. Update the analyst guide if needed
+
+## Changing Snapshot Retention
+
+Edit `scripts/configure_retention.sql` and run:
+
+```bash
+duckdb < scripts/configure_retention.sql
+```
+
+## Updating Views
+
+Edit `scripts/create_views.sql`, then:
+
+```bash
+Rscript scripts/apply_comments.R
+```
+
+The comments script also executes the views SQL.
+
+# Known Issues and Workarounds
+
+| Issue | Root Cause | Workaround |
+|-------|-----------|-----------|
+| R `duckdb` package lacks ducklake extension | Package limitation (v1.4.4) | Use DuckDB CLI via `system()` |
+| `COPY FROM DATABASE` fails on spatial types | DuckDB limitation | Individual `CREATE TABLE` with type casting |
+| Cannot create `.ducklake` on S3 | DuckDB limitation | Keep catalogue local, data on S3 |
+| Python `pins` cannot read multi-file pins | `pins` library limitation | Use `pyarrow.dataset` with S3 filesystem |
+| GeoParquet lacks CRS metadata | DuckDB limitation | Store CRS in pin metadata, set explicitly |
+| `curl` 2 GB upload limit | Network/curl limit | Chunk large tables into 3M-row parquet files |
+| `sfarrow` fails on DuckDB GeoParquet | `sfarrow` limitation | Use `arrow::read_parquet()` + `sf::st_as_sf()` |
+| Mixed POLYGON/MULTIPOLYGON | Data quality (ca_boundaries_bgc_tbl) | `ST_Multi(geom)` to promote all to MULTIPOLYGON |
+| 2 invalid geometries | Data quality (lsoa_2021_lep_tbl) | `geom_valid` BOOLEAN flag with `ST_IsValid()` |
+
+# Script Reference
+
+```{mermaid}
+%%| label: fig-script-map
+%%| fig-cap: "Script dependency and purpose map"
+flowchart LR
+    subgraph Create["Initial Setup"]
+        CR[create_ducklake.R]
+        CS[create_ducklake.sql]
+        AC[apply_comments.R]
+        CV[create_views.sql]
+        CR --> CS
+        AC --> CV
+    end
+
+    subgraph Refresh["Data Update"]
+        RF[refresh.R]
+        EP[export_pins.R]
+        ESP[export_spatial_pins.R]
+    end
+
+    subgraph Validate["Validation"]
+        VD[validate_ducklake.R]
+        VPR[validate_pins_r.R]
+        VPP[validate_pins.py]
+        TIR[test_interop.R]
+        TIP[test_interop.py]
+    end
+
+    subgraph Quick["Quick Checks"]
+        VS[verify_s3_access.sql]
+        VDL[verify_ducklake.sql]
+        CON[configure_retention.sql]
+    end
+```
+
+| Script | Purpose | Run Time |
+|--------|---------|----------|
+| `create_ducklake.R` | Create catalogue from source DB | ~5-10 min |
+| `apply_comments.R` | Apply comments + create views | ~2-5 min |
+| `refresh.R` | Full refresh (DuckLake + pins + catalogue) | ~10-30 min |
+| `export_pins.R` | Export non-spatial pins only | ~5-15 min |
+| `export_spatial_pins.R` | Export spatial pins only | ~5-15 min |
+| `validate_ducklake.R` | 8-point catalogue validation | ~5-10 min |
+| `validate_pins_r.R` | R pin integrity check | ~10-15 min |
+| `validate_pins.py` | Python pin integrity check | ~10-15 min |
+| `test_interop.R` / `test_interop.py` | Cross-language round-trip | ~2 min |
+| `verify_s3_access.sql` | S3 connectivity check | ~5 sec |
+| `verify_ducklake.sql` | Interactive DuckLake queries | ~10 sec |
+| `configure_retention.sql` | Set snapshot retention period | ~5 sec |
+
+# Directory Structure
+
+```
+ducklake/
+├── data/
+│   ├── mca_env.ducklake           # DuckLake catalogue (local, ~10 MB)
+│   └── mca_env_base.duckdb        # Source database (read-only)
+├── scripts/
+│   ├── create_ducklake.R          # Create catalogue from source
+│   ├── create_ducklake.sql        # SQL for catalogue creation
+│   ├── refresh.R                  # Unified refresh pipeline
+│   ├── export_pins.R              # Non-spatial pin export
+│   ├── export_spatial_pins.R      # Spatial pin export (GeoParquet)
+│   ├── create_views.sql           # 12 WECA-filtered views
+│   ├── apply_comments.R           # Apply table/column comments + views
+│   ├── configure_retention.sql    # Set snapshot retention (90 days)
+│   ├── validate_ducklake.R        # 8-point validation
+│   ├── validate_pins_r.R          # R pin validation
+│   ├── validate_pins.py           # Python pin validation
+│   ├── test_interop.R             # R→S3 round-trip
+│   ├── test_interop.py            # Python read back
+│   ├── verify_ducklake.sql        # Interactive check
+│   └── verify_s3_access.sql       # S3 connectivity test
+├── docs/
+│   ├── admin-guide.qmd            # This document
+│   ├── analyst-guide.qmd          # Analyst-facing guide
+│   ├── _quarto.yml                # Quarto site config
+│   └── custom.scss                # WECA branding
+└── .github/workflows/
+    └── publish.yml                # Auto-deploy to GitHub Pages
+```
