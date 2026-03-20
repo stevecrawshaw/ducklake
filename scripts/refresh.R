@@ -290,8 +290,12 @@ cat(sprintf("Pins:      s3://%s/%s\n", S3_BUCKET, S3_PREFIX))
 cat(sprintf("Started:   %s\n\n", format(run_start, "%Y-%m-%d %H:%M:%S")))
 
 # --- Connect to source DuckDB ---
-con <- dbConnect(duckdb(), dbdir = SOURCE_DB, read_only = TRUE)
-on.exit(dbDisconnect(con, shutdown = TRUE), add = TRUE)
+drv <- duckdb(dbdir = SOURCE_DB, read_only = TRUE)
+con <- dbConnect(drv)
+on.exit({
+  dbDisconnect(con)
+  duckdb_shutdown(drv)
+}, add = TRUE)
 
 # --- Get all tables ---
 tables_df <- dbGetQuery(con, "

@@ -1,0 +1,67 @@
+duckdb
+LOAD ducklake;
+LOAD httpfs;
+LOAD aws;
+LOAD SPATIAL;
+
+-- Create S3 credential (uses your ~/.aws/credentials file)
+CREATE SECRET (TYPE s3, REGION 'eu-west-2', PROVIDER credential_chain);-- Attach the DuckLake catalogue
+
+ATTACH 'ducklake:data/mca_env.ducklake' AS lake
+  (READ_ONLY, DATA_PATH 's3://stevecrawshaw-bucket/ducklake/data/');
+
+USE lake;
+SHOW TABLES;
+
+SELECT * FROM lake.ca_la_lookup_tbl LIMIT 5;
+
+SELECT MAX(LODGEMENT_DATE) AS max_lodgement_date
+FROM lake.raw_domestic_epc_weca_vw;
+
+LOAD SPATIAL;
+
+SELECT
+epc.LMK_KEY,
+epc.UPRN,
+epc.BUILDING_REFERENCE_NUMBER,
+epc.LOCAL_AUTHORITY,
+epc.LOCAL_AUTHORITY_LABEL,
+epc.PROPERTY_TYPE,
+epc.TRANSACTION_TYPE,
+epc.CONSTRUCTION_AGE_BAND,
+epc.TENURE,
+epc.WALLS_DESCRIPTION,
+epc.ROOF_DESCRIPTION,
+epc.WALLS_ENERGY_EFF,
+epc.ROOF_ENERGY_EFF,
+epc.MAINHEAT_DESCRIPTION,
+epc.MAINHEAT_ENERGY_EFF,
+epc.MAIN_FUEL,
+epc.SOLAR_WATER_HEATING_FLAG,
+epc.CURRENT_ENERGY_RATING,
+epc.POTENTIAL_ENERGY_RATING,
+epc.CURRENT_ENERGY_EFFICIENCY,
+epc.POTENTIAL_ENERGY_EFFICIENCY,
+epc.ENERGY_CONSUMPTION_CURRENT,
+epc.ENERGY_CONSUMPTION_POTENTIAL,
+epc.ENERGY_TARIFF,
+epc.CO2_EMISSIONS_CURRENT,
+epc.CO2_EMISSIONS_POTENTIAL,
+epc.CO2_EMISS_CURR_PER_FLOOR_AREA,
+epc.ENVIRONMENT_IMPACT_CURRENT,
+epc.ENVIRONMENT_IMPACT_POTENTIAL,
+epc.NUMBER_HABITABLE_ROOMS,
+epc.NUMBER_HEATED_ROOMS,
+epc.PHOTO_SUPPLY,
+epc.TOTAL_FLOOR_AREA,
+epc.BUILT_FORM,
+epc.LODGEMENT_DATETIME,
+'{' || uprn.shape.ST_Transform('EPSG:27700', 'EPSG:4326').ST_X() || ', ' ||
+       uprn.shape.ST_Transform('EPSG:27700', 'EPSG:4326').ST_Y() || '}' AS geo_point_2d
+FROM lake.epc_domestic_vw epc
+JOIN lake.open_uprn_lep_tbl uprn
+ON epc.UPRN = uprn.UPRN
+WHERE epc.LOCAL_AUTHORITY IN ('E06000022', 'E06000023', 'E06000024', 'E06000025')
+LIMIT 10;
+
+DESCRIBE lake.epc_domestic_ods_lep_vw;
