@@ -22,7 +22,7 @@ CREATE SECRET (TYPE s3, REGION 'eu-west-2', PROVIDER credential_chain);
 ATTACH 'ducklake:data/mca_env.ducklake' AS lake (DATA_PATH 's3://stevecrawshaw-bucket/ducklake/data/');
 
 -- Attach source database (read-only)
-ATTACH 'data/mca_env_base.duckdb' AS source (READ_ONLY);
+ATTACH '~/projects/data-lake/data_lake/mca_env_base.duckdb' AS source (READ_ONLY);
 
 -- Step 1: Drop existing BLOB-typed table
 DROP TABLE IF EXISTS lake.bdline_ua_lep_diss_tbl;

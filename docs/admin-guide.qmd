@@ -37,7 +37,7 @@ Both routes serve the same underlying data. The admin's job is to keep them in s
 %%| fig-cap: "System architecture: source database, DuckLake catalogue, and S3 pins"
 flowchart LR
     subgraph Local["Local Machine"]
-        SRC[(mca_env_base.duckdb<br/>Source Database)]
+        SRC[(mca_env_base.duckdb<br/>~/projects/data-lake/data_lake/)]
         CAT[(mca_env.ducklake<br/>Catalogue Metadata)]
     end
 
@@ -70,7 +70,7 @@ flowchart LR
 | DuckLake data prefix | `ducklake/data/` |
 | Pins prefix | `pins/` |
 | Catalogue file (local) | `data/mca_env.ducklake` |
-| Source database | `data/mca_env_base.duckdb` |
+| Source database | `~/projects/data-lake/data_lake/mca_env_base.duckdb` |
 | Tables | 18 (10 non-spatial, 8 spatial) |
 | Views | 12 (mostly WECA-filtered) |
 | Column comments | 403 |
@@ -152,7 +152,7 @@ DuckDB cannot create `.ducklake` files on S3. The catalogue metadata must remain
 
 ## Creating the Catalogue
 
-The catalogue is created from the source database (`data/mca_env_base.duckdb`) which contains all 18 tables pre-loaded.
+The catalogue is created from the source database (`~/projects/data-lake/data_lake/mca_env_base.duckdb`) which contains all 18 tables pre-loaded.
 
 ```bash
 Rscript scripts/create_ducklake.R
@@ -500,7 +500,7 @@ flowchart TD
 
 ## Regular Data Refresh
 
-When source data is updated in `data/mca_env_base.duckdb`:
+When source data is updated in `~/projects/data-lake/data_lake/mca_env_base.duckdb`:
 
 ```bash
 Rscript scripts/refresh.R
@@ -510,7 +510,7 @@ This is all you need. It handles DuckLake export, pin export, and catalogue gene
 
 ## Adding a New Table
 
-1. Add the table to `data/mca_env_base.duckdb`
+1. Add the table to `~/projects/data-lake/data_lake/mca_env_base.duckdb`
 2. If spatial, add edge-case handling to `scripts/refresh.R` (geometry conversion, ST_Multi if needed)
 3. Add table/column comments to the source database
 4. Run `Rscript scripts/refresh.R`
@@ -606,7 +606,7 @@ flowchart LR
 ducklake/
 ├── data/
 │   ├── mca_env.ducklake           # DuckLake catalogue (local, ~10 MB)
-│   └── mca_env_base.duckdb        # Source database (read-only)
+│   └── mca_env_base.duckdb        # Source database (~/projects/data-lake/data_lake/)
 ├── scripts/
 │   ├── create_ducklake.R          # Create catalogue from source
 │   ├── create_ducklake.sql        # SQL for catalogue creation

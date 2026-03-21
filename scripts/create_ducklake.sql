@@ -15,7 +15,7 @@
 --
 -- Prerequisites:
 --   - AWS credentials configured (credential_chain)
---   - Source database at data/mca_env_base.duckdb
+--   - Source database at ~/projects/data-lake/data_lake/mca_env_base.duckdb
 --   - S3 bucket stevecrawshaw-bucket accessible in eu-west-2
 
 -- Step 1: Install and load extensions
@@ -46,7 +46,7 @@ ATTACH 'ducklake:data/mca_env.ducklake'
     AS lake (DATA_PATH 's3://stevecrawshaw-bucket/ducklake/data/');
 
 -- Step 5: Attach the source database (read-only)
-ATTACH 'data/mca_env_base.duckdb' AS source (READ_ONLY);
+ATTACH '~/projects/data-lake/data_lake/mca_env_base.duckdb' AS source (READ_ONLY);
 
 -- Step 6: Register non-spatial tables (10 tables)
 -- These copy directly without type issues.

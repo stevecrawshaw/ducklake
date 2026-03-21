@@ -21,7 +21,7 @@ Both routes read from the same underlying data.
 ducklake/
   data/
     mca_env.ducklake      # DuckLake catalogue metadata (local file, a few KB)
-    mca_env_base.duckdb   # Source DuckDB database
+    mca_env_base.duckdb   # Source DuckDB database (~//projects/data-lake/data_lake/)
   scripts/
     refresh.R             # Unified refresh pipeline
     create_ducklake.R     # DuckLake creation
