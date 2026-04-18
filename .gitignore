@@ -25,3 +25,4 @@ docs/_site/
 
 # Quarto processing cache (NOT _freeze — that must be committed)
 docs/.quarto/
+.Rproj.user

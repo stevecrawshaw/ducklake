@@ -13,7 +13,7 @@ library(duckdb)
 library(DBI)
 
 # --- Configuration ---
-SOURCE_DB <- "~/projects/data-lake/data_lake/mca_env_base.duckdb"
+SOURCE_DB <- file.path(Sys.getenv("USERPROFILE"), "projects/data-lake/data_lake/mca_env_base.duckdb")
 DUCKLAKE_FILE <- "data/mca_env.ducklake"
 DATA_PATH <- "s3://stevecrawshaw-bucket/ducklake/data/"
 VIEWS_SQL_FILE <- "scripts/create_views.sql"

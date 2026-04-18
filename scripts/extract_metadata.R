@@ -9,7 +9,7 @@ library(duckdb)
 library(DBI)
 
 # --- Configuration ---
-SOURCE_DB <- "~/projects/data-lake/data_lake/mca_env_base.duckdb"
+SOURCE_DB <- file.path(Sys.getenv("USERPROFILE"), "projects/data-lake/data_lake/mca_env_base.duckdb")
 
 # --- Connect (read-only) ---
 con <- dbConnect(duckdb(), dbdir = SOURCE_DB, read_only = TRUE)

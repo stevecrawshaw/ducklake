@@ -65,3 +65,5 @@ WHERE epc.LOCAL_AUTHORITY IN ('E06000022', 'E06000023', 'E06000024', 'E06000025'
 LIMIT 10;
 
 DESCRIBE lake.epc_domestic_ods_lep_vw;
+
+SELECT comment FROM duckdb_tables();

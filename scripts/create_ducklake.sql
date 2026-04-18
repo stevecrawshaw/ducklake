@@ -7,9 +7,7 @@
 -- cannot create a new database file directly on S3. The data files
 -- (parquet) are stored on S3 under ducklake/data/.
 --
--- Spatial columns (WKB_BLOB, GEOMETRY) are cast to BLOB because DuckLake
--- does not support these user-defined types. Phase 4 will handle proper
--- geometry conversion.
+-- Spatial columns are written as GEOMETRY (DuckLake 1.0 native support).
 --
 -- Usage: Execute via scripts/create_ducklake.R or DuckDB CLI
 --
@@ -62,14 +60,12 @@ CREATE TABLE lake.raw_non_domestic_epc_certificates_tbl AS SELECT * FROM source.
 CREATE TABLE lake.uk_lsoa_tenure_tbl AS SELECT * FROM source.uk_lsoa_tenure_tbl;
 
 -- Step 7: Register spatial tables (8 tables)
--- DuckLake does not support WKB_BLOB or GEOMETRY types directly.
--- Spatial columns are cast to BLOB to preserve the binary geometry data.
--- Phase 4 will handle proper geometry type conversion.
-CREATE TABLE lake.bdline_ua_lep_diss_tbl AS SELECT * EXCLUDE(shape), shape::BLOB AS shape FROM source.bdline_ua_lep_diss_tbl;
-CREATE TABLE lake.bdline_ua_lep_tbl AS SELECT * EXCLUDE(shape), shape::BLOB AS shape FROM source.bdline_ua_lep_tbl;
-CREATE TABLE lake.bdline_ua_weca_diss_tbl AS SELECT * EXCLUDE(shape), shape::BLOB AS shape FROM source.bdline_ua_weca_diss_tbl;
-CREATE TABLE lake.bdline_ward_lep_tbl AS SELECT * EXCLUDE(shape), shape::BLOB AS shape FROM source.bdline_ward_lep_tbl;
-CREATE TABLE lake.ca_boundaries_bgc_tbl AS SELECT * EXCLUDE(geom), geom::BLOB AS geom FROM source.ca_boundaries_bgc_tbl;
-CREATE TABLE lake.codepoint_open_lep_tbl AS SELECT * EXCLUDE(shape), shape::BLOB AS shape FROM source.codepoint_open_lep_tbl;
-CREATE TABLE lake.lsoa_2021_lep_tbl AS SELECT * EXCLUDE(shape), shape::BLOB AS shape FROM source.lsoa_2021_lep_tbl;
-CREATE TABLE lake.open_uprn_lep_tbl AS SELECT * EXCLUDE(shape), shape::BLOB AS shape FROM source.open_uprn_lep_tbl;
+-- DuckLake 1.0 supports GEOMETRY natively (requires spatial extension loaded above).
+CREATE TABLE lake.bdline_ua_lep_diss_tbl AS SELECT * EXCLUDE(shape), ST_GeomFromWKB(shape) AS shape FROM source.bdline_ua_lep_diss_tbl;
+CREATE TABLE lake.bdline_ua_lep_tbl      AS SELECT * EXCLUDE(shape), ST_GeomFromWKB(shape) AS shape FROM source.bdline_ua_lep_tbl;
+CREATE TABLE lake.bdline_ua_weca_diss_tbl AS SELECT * EXCLUDE(shape), ST_GeomFromWKB(shape) AS shape FROM source.bdline_ua_weca_diss_tbl;
+CREATE TABLE lake.bdline_ward_lep_tbl    AS SELECT * EXCLUDE(shape), ST_GeomFromWKB(shape) AS shape FROM source.bdline_ward_lep_tbl;
+CREATE TABLE lake.ca_boundaries_bgc_tbl  AS SELECT * EXCLUDE(geom),  ST_Multi(geom) AS geom        FROM source.ca_boundaries_bgc_tbl;
+CREATE TABLE lake.codepoint_open_lep_tbl AS SELECT * EXCLUDE(shape), ST_GeomFromWKB(shape) AS shape FROM source.codepoint_open_lep_tbl;
+CREATE TABLE lake.lsoa_2021_lep_tbl      AS SELECT * EXCLUDE(shape), ST_GeomFromWKB(shape) AS shape, ST_IsValid(ST_GeomFromWKB(shape)) AS geom_valid FROM source.lsoa_2021_lep_tbl;
+CREATE TABLE lake.open_uprn_lep_tbl      AS SELECT * EXCLUDE(shape), ST_GeomFromWKB(shape) AS shape FROM source.open_uprn_lep_tbl;

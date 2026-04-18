@@ -14,13 +14,13 @@
 # Usage: Rscript scripts/refresh.R
 #   (run from project root directory)
 
+library(arrow)
 library(pins)
 library(duckdb)
 library(DBI)
-library(arrow)
 
 # --- Configuration ---
-SOURCE_DB <- "~/projects/data-lake/data_lake/mca_env_base.duckdb"
+SOURCE_DB <- file.path(Sys.getenv("USERPROFILE"), "projects/data-lake/data_lake/mca_env_base.duckdb")
 DUCKLAKE_FILE <- "data/mca_env.ducklake"
 DATA_PATH <- "s3://stevecrawshaw-bucket/ducklake/data/"
 S3_BUCKET <- "stevecrawshaw-bucket"
@@ -127,21 +127,16 @@ get_ducklake_counts <- function(table_names) {
     paste0(combined_query, ";"),
     sep = "\n"
   )
-  result <- run_duckdb_cli(sql, timeout = 300, csv_mode = TRUE)
+  result <- run_duckdb_cli(sql, timeout = 300)
 
-  # Parse CSV output: header line "tbl,n" then data lines "table_name,12345"
   counts <- setNames(rep(NA_real_, length(table_names)), table_names)
-  csv_text <- paste(result$output, collapse = "\n")
-  parsed <- tryCatch(
-    read.csv(text = csv_text, stringsAsFactors = FALSE),
-    error = function(e) NULL
-  )
-  if (!is.null(parsed) && "tbl" %in% names(parsed) && "n" %in% names(parsed)) {
-    for (j in seq_len(nrow(parsed))) {
-      tbl_name <- parsed$tbl[j]
-      if (tbl_name %in% table_names) {
-        counts[tbl_name] <- parsed$n[j]
-      }
+  for (line in result$output) {
+    cleaned <- gsub("\u2502", "|", line)
+    parts <- trimws(unlist(strsplit(cleaned, "\\|")))
+    parts <- parts[nchar(parts) > 0]
+    if (length(parts) == 2 && parts[1] %in% table_names) {
+      val <- suppressWarnings(as.numeric(parts[2]))
+      if (!is.na(val)) counts[parts[1]] <- val
     }
   }
 
@@ -309,12 +304,8 @@ cat(sprintf("Pins:      s3://%s/%s\n", S3_BUCKET, S3_PREFIX))
 cat(sprintf("Started:   %s\n\n", format(run_start, "%Y-%m-%d %H:%M:%S")))
 
 # --- Connect to source DuckDB ---
-drv <- duckdb(dbdir = SOURCE_DB, read_only = TRUE)
-con <- dbConnect(drv)
-on.exit({
-  dbDisconnect(con)
-  duckdb_shutdown(drv)
-}, add = TRUE)
+# NB: no on.exit() here -- under source() it fires per-expression and invalidates con.
+con <- dbConnect(duckdb::duckdb(), dbdir = SOURCE_DB, read_only = TRUE)
 
 # --- Get all tables ---
 tables_df <- dbGetQuery(con, "

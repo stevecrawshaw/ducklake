@@ -10,7 +10,7 @@ library(pins)
 library(arrow)
 
 # --- Configuration ---
-SOURCE_DB <- "~/projects/data-lake/data_lake/mca_env_base.duckdb"
+SOURCE_DB <- file.path(Sys.getenv("USERPROFILE"), "projects/data-lake/data_lake/mca_env_base.duckdb")
 S3_BUCKET <- "stevecrawshaw-bucket"
 S3_PREFIX <- "pins/"
 AWS_REGION <- "eu-west-2"
