@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this project is
 
-A data platform for the West of England Combined Authority (WECA). It maintains 18 curated datasets accessible via two routes:
+A data platform for the West of England Combined Authority (WECA). It maintains curated datasets (current count: see `datasets_catalogue` table) accessible via two routes:
 
 - **DuckLake** — SQL catalogue (`data/mca_env.ducklake`) backed by Parquet files on S3. Analysts query with DuckDB CLI.
 - **Pins** — the same data pinned to S3 as Parquet/GeoParquet, readable from R (`pins`) or Python (`pins`).
@@ -13,7 +13,7 @@ The source of truth is a separate DuckDB database: `~/projects/data-lake/data_la
 
 ## DuckDB version
 
-Minimum DuckDB CLI: **1.5.2**. `AUTOMATIC_MIGRATION` is off by default in DuckLake 1.0 — run `scripts/migrate_ducklake.R` once to upgrade an existing 0.x catalogue. `GEOMETRY` is now a DuckDB core built-in type; the spatial extension is still needed for `ST_*` functions.
+Minimum DuckDB CLI: **1.5.2**. `AUTOMATIC_MIGRATION` is off by default in DuckLake 1.0 — run `scripts/migrate_ducklake.R` **once only** to upgrade an existing 0.x catalogue — safe to skip if starting fresh. `GEOMETRY` is now a DuckDB core built-in type; the spatial extension is still needed for `ST_*` functions.
 
 ## Key constraint: DuckDB CLI vs R package
 
@@ -58,6 +58,16 @@ quarto preview docs  # live preview
 ```
 
 Docs auto-deploy to GitHub Pages on push to `main` when files under `docs/` change.
+
+`docs/` contains a Quarto analyst guide covering: connecting to DuckLake, querying via CLI, reading pins from R/Python, spatial data handling, and the self-describing catalogue.
+
+## Adding a new table
+
+1. Add the source view/table name to the `tables` list in `scripts/refresh.R`
+2. If spatial (BLOB/GEOMETRY/WKB column): add to `spatial_tables` vector; check whether `ST_Multi()` is needed for mixed geometry types
+3. Add column comments to `scripts/apply_comments.R`
+4. Run `Rscript scripts/refresh.R` — drops and recreates the entire DuckLake
+5. Run `Rscript scripts/apply_comments.R` to restore comments and views
 
 ## Architecture
 
@@ -104,7 +114,7 @@ Spatial tables are detected by BLOB/GEOMETRY/WKB column types. Eight spatial tab
 - Pins: `s3://stevecrawshaw-bucket/pins/`
 - Auth: credential chain (`~/.aws/credentials`)
 
-DuckDB CLI sessions always need:
+DuckDB CLI sessions are stateless — run these commands at the start of every session:
 ```sql
 INSTALL ducklake; LOAD ducklake;
 INSTALL httpfs; LOAD httpfs;
