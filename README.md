@@ -1,5 +1,8 @@
 # WECA Data Platform (DuckLake)
 
+> [!WARNING]
+> **Mothballed (October 2026).** This project is no longer maintained. The S3 data (DuckLake Parquet files and pins) has been deleted and the analyst guide is no longer published. None of the access instructions below work any more. To rebuild, run `Rscript scripts/refresh.R` against `mca_env_base.duckdb` with a new S3 bucket.
+
 A shared data lake providing **18 curated datasets** for analysts at the West of England Combined Authority. Data is stored on Amazon S3 and accessible through two complementary routes:
 
 - **Pins (R / Python):** Read datasets directly into data frames for exploratory analysis

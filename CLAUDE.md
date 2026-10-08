@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Status (Updated: 2026-10-08)
+
+**Mothballed.** All S3 objects in `stevecrawshaw-bucket` were deleted, the GitHub Pages site was unpublished and `publish.yml` was removed. `data/mca_env.ducklake` now references Parquet files that no longer exist. Reviving the project means creating a new bucket and running `refresh.R` in full.
+
 ## What this project is
 
 A data platform for the West of England Combined Authority (WECA). It maintains curated datasets (current count: see `datasets_catalogue` table) accessible via two routes:
